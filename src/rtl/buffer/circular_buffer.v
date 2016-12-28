@@ -38,52 +38,51 @@ module circular_buffer #(parameter SIZE=8)(
 			full_o <= 0;
 			empty_o <= 1;
 		end
-	end
-
-	always@(posedge clk)
-	begin
-		if(read_i & ~write_i & ~empty_o)				//READ ONLY
+		else
 		begin
-			if(read_ptr == SIZE-1)
+			if(read_i & ~write_i & ~empty_o)				//READ ONLY
 			begin
-				read_ptr <= 0; 
+				if(read_ptr == SIZE-1)
+				begin
+					read_ptr <= 0; 
+				end
+				else
+				begin
+					read_ptr <= read_ptr+1;
+				end
+				if(read_ptr == write_ptr-1)
+				begin
+					empty_o <= 1;
+				end
+				else 
+				begin
+					empty_o <= 0;
+				end
 			end
-			else
+			else if(~read_i & write_i & ~full_o)			//WRITE ONLY
 			begin
-				read_ptr <= read_ptr+1;
+				if(write_ptr == SIZE-1)
+				begin
+					write_ptr <= 0;
+				end
+				else
+				begin
+					write_ptr <= write_ptr+1;
+					memory[write_ptr] <= data_i;
+				end
+				if(write_ptr == read_ptr-1)
+				begin
+					empty_o <= 1;
+				end
+				else 
+				begin
+					empty_o <= 0;
+				end
 			end
-			if(read_ptr == write_ptr-1)
+			else if(read_i & write_i)
 			begin
-				empty_o <= 1;
+				//read and write in the same clock cycle NOT YET IMPLEMENTED
 			end
-			else 
-			begin
-				empty_o <= 0;
-			end
-		end
-		else if(~read_i & write_i & ~full_o)			//WRITE ONLY
-		begin
-			if(write_ptr == SIZE-1)
-			begin
-				write_ptr <= 0;
-			end
-			else
-			begin
-				write_ptr <= write_ptr+1;
-				memory[write_ptr] <= data_i;
-			end
-			if(write_ptr == read_ptr-1)
-			begin
-				empty_o <= 1;
-			end
-			else 
-			begin
-				empty_o <= 0;
-			end
-		end
-		else if(read_i & write_i)
-		begin
-			//read and write in the same clock cycle NOT YET IMPLEMENTED
 		end
 	end
 endmodule
