@@ -72,11 +72,11 @@ module circular_buffer #(parameter SIZE=8)(
 				end
 				if(write_ptr == read_ptr-1)
 				begin
-					empty_o <= 1;
+					full_o <= 1;
 				end
 				else 
 				begin
-					empty_o <= 0;
+					full_o <= 0;
 				end
 			end
 			else if(read_i & write_i)
