@@ -68,8 +68,8 @@ module circular_buffer #(parameter SIZE=8)(
 				else
 				begin
 					write_ptr <= write_ptr+1;
-					memory[write_ptr] <= data_i;
 				end
+				memory[write_ptr] <= data_i;
 				if(write_ptr == read_ptr-1)
 				begin
 					full_o <= 1;
