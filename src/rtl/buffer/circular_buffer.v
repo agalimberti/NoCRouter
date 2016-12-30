@@ -7,11 +7,12 @@ module circular_buffer #(parameter SIZE=8)(
 	output data_o,
 	output reg full_o,
 	output reg empty_o
-);							//TODO buffer cells aren't just single bits, but XX bits (XX: size of a flit)
+);							
+//TODO buffer cells aren't just single bits, but XX bits (XX: size of a flit)
 
 	//function calculating base 2 logarithm
-	function integer clogb2;					//IS IT STILL SYNTHESIZABLE WITH A FUNCTION???
-	input [31:0] value;							//Yet, it is ONLY applied to a PARAMETER to put the result in a LOCALPARAM
+	function integer clogb2;
+	input [31:0] value;
 	integer i;
 	begin
 		clogb2 = 0;
@@ -24,11 +25,20 @@ module circular_buffer #(parameter SIZE=8)(
 	localparam [32:0] POINTER_SIZE= clogb2(SIZE);
 
 	reg [SIZE-1:0] memory;
+
 	reg [POINTER_SIZE-1:0] read_ptr;
 	reg [POINTER_SIZE-1:0] write_ptr;
 
+	//next state values
+	reg [POINTER_SIZE-1:0] read_ptr_next;
+	reg [POINTER_SIZE-1:0] write_ptr_next;
+	reg full_o_next;
+	reg empty_o_next;
+
+	//data output
 	assign data_o = memory [read_ptr];
 
+	//sequential logic
 	always@(posedge clk or posedge rst)
 	begin
 		if (rst)
@@ -40,49 +50,72 @@ module circular_buffer #(parameter SIZE=8)(
 		end
 		else
 		begin
-			if(read_i & ~write_i & ~empty_o)				//READ ONLY
+			read_ptr <= read_ptr_next;
+			write_ptr <= write_ptr_next;
+			full_o <= full_o_next;
+			empty_o <= empty_o_next;
+			if(~read_i & write_i & ~full_o)		//remove ~read_i when implementing concurrent read and write
 			begin
-				if(read_ptr == SIZE-1)
-				begin
-					read_ptr <= 0; 
-				end
-				else
-				begin
-					read_ptr <= read_ptr+1;
-				end
-				if(read_ptr == write_ptr-1)
-				begin
-					empty_o <= 1;
-				end
-				else 
-				begin
-					empty_o <= 0;
-				end
-			end
-			else if(~read_i & write_i & ~full_o)			//WRITE ONLY
-			begin
-				if(write_ptr == SIZE-1)
-				begin
-					write_ptr <= 0;
-				end
-				else
-				begin
-					write_ptr <= write_ptr+1;
-				end
 				memory[write_ptr] <= data_i;
-				if(write_ptr == read_ptr-1)
-				begin
-					full_o <= 1;
-				end
-				else 
-				begin
-					full_o <= 0;
-				end
 			end
-			else if(read_i & write_i)
+		end
+	end
+
+	//combinatorial logic
+	always@(*)
+	begin
+		write_ptr_next = write_ptr;
+		read_ptr_next = read_ptr;
+		full_o_next = full_o;
+		empty_o_next = empty_o;
+		//read only
+		if(read_i & ~write_i & ~empty_o)
+		begin
+			//increment read pointer
+			if(read_ptr == SIZE-1)
 			begin
-				//read and write in the same clock cycle NOT YET IMPLEMENTED
+				read_ptr_next = 0; 
 			end
+			else
+			begin
+				read_ptr_next = read_ptr+1;
+			end
+			//update empty buffer flag
+			if(read_ptr == write_ptr-1)
+			begin
+				empty_o_next = 1;
+			end
+			else 
+			begin
+				empty_o_next = 0;
+			end
+		end
+		//write only
+		else if(~read_i & write_i & ~full_o)
+		begin
+			//increment write pointer
+			if(write_ptr == SIZE-1)
+			begin
+				write_ptr_next = 0;
+			end
+			else
+			begin
+				write_ptr_next = write_ptr+1;
+			end
+			//update full buffer flag
+			if(write_ptr == read_ptr-1)
+			begin
+				full_o_next = 1;
+			end
+			else 
+			begin
+				full_o_next = 0;
+			end
+		end
+		//both read and write
+		else if(read_i & write_i)
+		begin
+			//TODO
 		end
 	end
 endmodule
