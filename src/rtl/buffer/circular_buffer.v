@@ -54,7 +54,7 @@ module circular_buffer #(parameter SIZE=8)(
 			write_ptr <= write_ptr_next;
 			full_o <= full_o_next;
 			empty_o <= empty_o_next;
-			if(~read_i & write_i & ~full_o)		//remove ~read_i when implementing concurrent read and write
+			if((~read_i & write_i & ~full_o) | (read_i & write_i))
 			begin
 				memory[write_ptr] <= data_i;
 			end
@@ -68,7 +68,7 @@ module circular_buffer #(parameter SIZE=8)(
 		read_ptr_next = read_ptr;
 		full_o_next = full_o;
 		empty_o_next = empty_o;
-		//read only
+		//read only (if buffer not empty)
 		if(read_i & ~write_i & ~empty_o)
 		begin
 			//increment read pointer
@@ -90,7 +90,7 @@ module circular_buffer #(parameter SIZE=8)(
 				empty_o_next = 0;
 			end
 		end
-		//write only
+		//write only (if buffer not full)
 		else if(~read_i & write_i & ~full_o)
 		begin
 			//increment write pointer
@@ -115,7 +115,29 @@ module circular_buffer #(parameter SIZE=8)(
 		//both read and write
 		else if(read_i & write_i)
 		begin
-			//TODO
+			//read
+			if(read_ptr == SIZE-1)
+			begin
+				read_ptr_next = 0; 
+			end
+			else
+			begin
+				read_ptr_next = read_ptr+1;
+			end
+			//write
+			if(write_ptr == SIZE-1)
+			begin
+				write_ptr_next = 0;
+			end
+			else
+			begin
+				write_ptr_next = write_ptr+1;
+			end
+			/*
+			no update to full and empty buffer flags,
+			because they don't change, as the two 
+			pointers move at the same time
+			*/
 		end
 	end
 endmodule
