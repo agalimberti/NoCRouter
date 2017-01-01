@@ -81,7 +81,7 @@ module circular_buffer #(parameter SIZE=8)(
 				read_ptr_next = read_ptr+1;
 			end
 			//update empty buffer flag
-			if(read_ptr == write_ptr-1)
+			if(read_ptr_next == write_ptr)
 			begin
 				empty_o_next = 1;
 			end
@@ -103,7 +103,7 @@ module circular_buffer #(parameter SIZE=8)(
 				write_ptr_next = write_ptr+1;
 			end
 			//update full buffer flag
-			if(write_ptr == read_ptr-1)
+			if(write_ptr_next == read_ptr)
 			begin
 				full_o_next = 1;
 			end
