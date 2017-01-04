@@ -117,7 +117,7 @@ module circular_buffer #(parameter SIZE=8)(
 			empty_o_next = 0;
 		end
 		//both read and write
-		else if(read_i & write_i)
+		else if(read_i & write_i & ~empty_o)
 		begin
 			//read
 			if(read_ptr == SIZE-1)
