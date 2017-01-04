@@ -80,6 +80,8 @@ module circular_buffer #(parameter SIZE=8)(
 			begin
 				read_ptr_next = read_ptr+1;
 			end
+			//update full buffer flag
+			full_o_next = 0;
 			//update empty buffer flag
 			if(read_ptr_next == write_ptr)
 			begin
@@ -111,6 +113,8 @@ module circular_buffer #(parameter SIZE=8)(
 			begin
 				full_o_next = 0;
 			end
+			//update empty buffer flag
+			empty_o_next = 0;
 		end
 		//both read and write
 		else if(read_i & write_i)
