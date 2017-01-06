@@ -1,14 +1,13 @@
-module circular_buffer #(parameter SIZE=8, parameter FLIT_SIZE=8)(
+module circular_buffer #(parameter BUFFER_SIZE=8, parameter FLIT_SIZE=8)(
 	input [FLIT_SIZE-1:0] data_i,
 	input read_i,
 	input write_i,
 	input rst,
 	input clk,
 	output [FLIT_SIZE-1:0] data_o,
-	output reg full_o,
-	output reg empty_o
+	output reg is_full_o,
+	output reg is_empty_o
 );							
-//TODO buffer cells aren't just single bits, but XX bits (XX: size of a flit)
 
 	//function calculating base 2 logarithm
 	function integer clogb2;
@@ -21,127 +20,98 @@ module circular_buffer #(parameter SIZE=8, parameter FLIT_SIZE=8)(
 	end
 	endfunction
 
-	//size of the pointer (as a number of bits) is the base 2 logarithm of the SIZE parameter
-	localparam [32:0] POINTER_SIZE= clogb2(SIZE);
+	//size of the pointers (as a number of bits) is the base 2 logarithm of the SIZE parameter
+	localparam [32:0] POINTER_SIZE= clogb2(BUFFER_SIZE);
 
-	reg [FLIT_SIZE-1:0] memory [SIZE-1:0];
+	//buffer memory
+	reg [FLIT_SIZE-1:0] memory [BUFFER_SIZE-1:0];
 
+	//read and write pointers
 	reg [POINTER_SIZE-1:0] read_ptr;
 	reg [POINTER_SIZE-1:0] write_ptr;
 
 	//next state values
 	reg [POINTER_SIZE-1:0] read_ptr_next;
 	reg [POINTER_SIZE-1:0] write_ptr_next;
-	reg full_o_next;
-	reg empty_o_next;
+	reg is_full_next;
+	reg is_empty_next;
 
 	//data output
 	assign data_o = memory [read_ptr];
 
-	//sequential logic
-	always@(posedge clk or posedge rst)
+	always_ff@(posedge clk or posedge rst)
 	begin
 		if (rst)
 		begin
 			read_ptr <= 0;
 			write_ptr <= 0;
-			full_o <= 0;
-			empty_o <= 1;
+			is_full_o <= 0;
+			is_empty_o <= 1;
 		end
 		else
 		begin
 			read_ptr <= read_ptr_next;
 			write_ptr <= write_ptr_next;
-			full_o <= full_o_next;
-			empty_o <= empty_o_next;
-			if((~read_i & write_i & ~full_o) | (read_i & write_i))
-			begin
+			is_full_o <= is_full_next;
+			is_empty_o <= is_empty_next;
+			if((~read_i & write_i & ~is_full_o) | (read_i & write_i))
 				memory[write_ptr] <= data_i;
-			end
 		end
 	end
 
-	//combinatorial logic
-	always@(*)
+	always_comb
 	begin
+		//default behavior (keep previous state)
 		write_ptr_next = write_ptr;
 		read_ptr_next = read_ptr;
-		full_o_next = full_o;
-		empty_o_next = empty_o;
+		is_full_next = is_full_o;
+		is_empty_next = is_empty_o;
 		//read only (if buffer not empty)
-		if(read_i & ~write_i & ~empty_o)
+		unique if(read_i & ~write_i & ~is_empty_o)
 		begin
 			//increment read pointer
-			if(read_ptr == SIZE-1)
-			begin
+			if(read_ptr == BUFFER_SIZE-1)
 				read_ptr_next = 0; 
-			end
 			else
-			begin
 				read_ptr_next = read_ptr+1;
-			end
 			//update full buffer flag
-			full_o_next = 0;
+			is_full_next = 0;
 			//update empty buffer flag
 			if(read_ptr_next == write_ptr)
-			begin
-				empty_o_next = 1;
-			end
+				is_empty_next = 1;
 			else 
-			begin
-				empty_o_next = 0;
-			end
+				is_empty_next = 0;
 		end
 		//write only (if buffer not full)
-		else if(~read_i & write_i & ~full_o)
+		else if(~read_i & write_i & ~is_full_o)
 		begin
 			//increment write pointer
-			if(write_ptr == SIZE-1)
-			begin
+			if(write_ptr == BUFFER_SIZE-1)
 				write_ptr_next = 0;
-			end
 			else
-			begin
 				write_ptr_next = write_ptr+1;
-			end
 			//update full buffer flag
 			if(write_ptr_next == read_ptr)
-			begin
-				full_o_next = 1;
-			end
+				is_full_next = 1;
 			else 
-			begin
-				full_o_next = 0;
-			end
+				is_full_next = 0;
 			//update empty buffer flag
-			empty_o_next = 0;
+			is_empty_next = 0;
 		end
-		//both read and write
-		else if(read_i & write_i & ~empty_o)
+		//concurrently read and write
+		else if(read_i & write_i & ~is_empty_o)
 		begin
-			//read
-			if(read_ptr == SIZE-1)
-			begin
+			//increment read pointer
+			if(read_ptr == BUFFER_SIZE-1)
 				read_ptr_next = 0; 
-			end
 			else
-			begin
 				read_ptr_next = read_ptr+1;
-			end
-			//write
-			if(write_ptr == SIZE-1)
-			begin
+			//increment write pointer
+			if(write_ptr == BUFFER_SIZE-1)
 				write_ptr_next = 0;
-			end
 			else
-			begin
 				write_ptr_next = write_ptr+1;
-			end
-			/*
-			no update to full and empty buffer flags,
-			because they don't change, as the two 
-			pointers move at the same time
-			*/
+			//no update to full and empty buffer flags
 		end
 	end
 endmodule
