@@ -9,19 +9,9 @@ module circular_buffer #(parameter BUFFER_SIZE=8, parameter FLIT_SIZE=8)(
 	output reg is_empty_o
 );							
 
-	//function calculating base 2 logarithm
-	function integer clogb2;
-	input [31:0] value;
-	integer i;
-	begin
-		clogb2 = 0;
-		for(i = 0; 2**i < value; i = i + 1)
-			clogb2 = i + 1;
-	end
-	endfunction
-
-	//size of the pointers (as a number of bits) is the base 2 logarithm of the SIZE parameter
-	localparam [32:0] POINTER_SIZE= clogb2(BUFFER_SIZE);
+	/* size of the pointers (as a number of bits) is the 
+	ceiling of the base 2 logarithm of the SIZE parameter */
+	localparam [32:0] POINTER_SIZE= utils::clogb2(BUFFER_SIZE);
 
 	//buffer memory
 	reg [FLIT_SIZE-1:0] memory [BUFFER_SIZE-1:0];
