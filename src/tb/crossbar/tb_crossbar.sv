@@ -1,12 +1,12 @@
 `timescale 1ns / 1ps
 
 module tb_crossbar #(
-    parameter INPUT_NUM=4,
-    parameter OUTPUT_NUM=4,
-    parameter FLIT_SIZE=4   
-    );
+    parameter INPUT_NUM = 4,
+    parameter OUTPUT_NUM = 4,
+    parameter FLIT_SIZE = 4   
+);
     
-    localparam [32:0] SEL_SIZE= utils::clogb2(INPUT_NUM); 
+    localparam [31:0] SEL_SIZE = utils::clogb2(INPUT_NUM); 
 
     logic [FLIT_SIZE-1:0] tb_data_i [INPUT_NUM-1:0];
     logic [SEL_SIZE-1:0] tb_sel_i [OUTPUT_NUM-1:0];
