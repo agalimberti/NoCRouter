@@ -12,9 +12,8 @@ module circular_buffer #(
     output logic is_empty_o
 );
 
-    /* size of the pointers (as a number of bits) is the 
-    ceiling of the base 2 logarithm of the SIZE parameter */
-    localparam [31:0] POINTER_SIZE = utils::clogb2(BUFFER_SIZE);
+    //pointer size
+    localparam [31:0] POINTER_SIZE = $clog2(BUFFER_SIZE);
 
     //buffer memory
     logic [FLIT_SIZE-1:0] memory [BUFFER_SIZE-1:0];
@@ -71,7 +70,6 @@ module circular_buffer #(
                 is_empty_next = 1;
             else 
                 is_empty_next = 0;
-
         end
         //write only (if buffer not full)
         else if(~read_i & write_i & ~is_full_o)

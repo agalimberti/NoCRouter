@@ -6,7 +6,7 @@ module tb_crossbar #(
     parameter FLIT_SIZE = 4   
 );
     
-    localparam [31:0] SEL_SIZE = utils::clogb2(INPUT_NUM); 
+    localparam [31:0] SEL_SIZE = $clog2(INPUT_NUM); 
 
     logic [FLIT_SIZE-1:0] tb_data_i [INPUT_NUM-1:0];
     logic [SEL_SIZE-1:0] tb_sel_i [OUTPUT_NUM-1:0];
