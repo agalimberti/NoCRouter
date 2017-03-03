@@ -55,64 +55,57 @@ module circular_buffer #(
     begin
         //read only (if buffer not empty)
         unique if(read_i & ~write_i & ~is_empty_o)
-        begin
-            //increment read pointer
-            if(read_ptr == BUFFER_SIZE-1)
-                read_ptr_next = 0; 
-            else
-                read_ptr_next = read_ptr+1;
-            //no update to write pointer
+        begin: read_not_empty
+            read_ptr_next = increase_ptr(read_ptr);
             write_ptr_next = write_ptr;
-            //update full buffer flag
             is_full_next = 0;
-            //update empty buffer flag
-            if(read_ptr_next == write_ptr)
-                is_empty_next = 1;
-            else 
-                is_empty_next = 0;
+            update_empty_on_read();
         end
         //write only (if buffer not full)
         else if(~read_i & write_i & ~is_full_o)
-        begin
-            //no update to read pointer
+        begin: write_not_full
             read_ptr_next = read_ptr;
-            //increment write pointer
-            if(write_ptr == BUFFER_SIZE-1)
-                write_ptr_next = 0;
-            else
-                write_ptr_next = write_ptr+1;
-            //update full buffer flag
-            if(write_ptr_next == read_ptr)
-                is_full_next = 1;
-            else 
-                is_full_next = 0;
-            //update empty buffer flag
+            write_ptr_next = increase_ptr(write_ptr);
+            update_full_on_write();
             is_empty_next = 0;
         end
         //concurrently read and write (if buffer not empty)
         else if(read_i & write_i & ~is_empty_o)
-        begin
-            //increment read pointer
-            if(read_ptr == BUFFER_SIZE-1)
-                read_ptr_next = 0; 
-            else
-                read_ptr_next = read_ptr+1;
-            //increment write pointer
-            if(write_ptr == BUFFER_SIZE-1)
-                write_ptr_next = 0;
-            else
-                write_ptr_next = write_ptr+1;
-            //no update to full and empty buffer flags
+        begin: read_write_not_empty
+            read_ptr_next = increase_ptr(read_ptr);
+            write_ptr_next = increase_ptr(write_ptr);
             is_full_next = is_full_o;
             is_empty_next = is_empty_o;
         end
         //default behavior (keep previous state)
         else
-        begin
+        begin: do_nothing
             read_ptr_next = read_ptr;
             write_ptr_next = write_ptr;
             is_full_next = is_full_o;
             is_empty_next = is_empty_o;
         end
     end
+
+    function logic [POINTER_SIZE-1:0] increase_ptr (logic [POINTER_SIZE-1:0] ptr)
+        if(ptr == BUFFER_SIZE-1)
+            increased_ptr = 0;
+        else
+            increased_ptr = ptr+1;
+    endfunction
+
+    function void update_empty_on_read ()
+        if(read_ptr_next == write_ptr)
+            is_empty_next = 1;
+        else
+            is_empty_next = 0;
+    endfunction
+
+    function void update_full_on_write ()
+        if(write_ptr_next == read_ptr)
+            is_full_next = 1;
+        else
+            is_full_next = 0;
+    endfunction
+
 endmodule
