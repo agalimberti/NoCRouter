@@ -45,7 +45,7 @@ module tb_circular_buffer #(
     task dump_output();
         $dumpfile("out.vcd");
         $dumpvars(0, tb_circular_buffer);
-        // Dynamic dumping of the memory cells of the DUT
+        
         for (i = 0; i < BUFFER_SIZE; i = i + 1)
             $dumpvars(0, tb_circular_buffer.circular_buffer.memory[i]);
     endtask

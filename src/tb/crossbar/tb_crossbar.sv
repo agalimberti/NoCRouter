@@ -19,7 +19,6 @@ module tb_crossbar #(
 		#5 $finish;
 	end
 
-	// DUT
 	crossbar #(
         .INPUT_NUM(INPUT_NUM),
         .OUTPUT_NUM(OUTPUT_NUM),
@@ -29,7 +28,6 @@ module tb_crossbar #(
         .*
     );
 
-    //tasks
     task dump_output();
         $dumpfile("out.vcd");
 		$dumpvars(0, tb_crossbar);

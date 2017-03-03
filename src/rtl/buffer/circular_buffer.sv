@@ -12,25 +12,30 @@ module circular_buffer #(
     output logic is_empty_o
 );
 
-    //pointer size
     localparam [31:0] POINTER_SIZE = $clog2(BUFFER_SIZE);
 
-    //buffer memory
     logic [FLIT_SIZE-1:0] memory [BUFFER_SIZE-1:0];
 
-    //read and write pointers
     logic [POINTER_SIZE-1:0] read_ptr;
     logic [POINTER_SIZE-1:0] write_ptr;
 
-    //next state values
     logic [POINTER_SIZE-1:0] read_ptr_next;
     logic [POINTER_SIZE-1:0] write_ptr_next;
     logic is_full_next;
     logic is_empty_next;
 
-    //data output
+    /*
+    The memory slot pointed by the read_ptr is output at the data_o pin
+    */
     assign data_o = memory [read_ptr];
 
+    /*
+    Sequential logic:
+    - reset on the rising edge of the rst input;
+    - when the write_i input is asserted on the rising edge of the clock,
+      new data is added to the buffer if the buffer is not full
+      or a simultaneous read is performed (i.e., the read_i input is asserted).
+    */
     always_ff@(posedge clk or posedge rst)
     begin
         if (rst)
@@ -51,9 +56,19 @@ module circular_buffer #(
         end
     end
 
+    /*
+    Combinatorial logic:
+    - the following operations are accepted:
+        * read while the buffer is not empty
+        * write while the buffer is not full
+        * simultaneously read and write while the buffer is not empty
+      and, accordingly to the requested operation:
+        * full and empty flags are eventually updated
+        * read and write pointers are eventually incremented
+    - otherwise, the buffer next status doesn't change
+    */
     always_comb
     begin
-        //read only (if buffer not empty)
         unique if(read_i & ~write_i & ~is_empty_o)
         begin: read_not_empty
             read_ptr_next = increase_ptr(read_ptr);
@@ -61,7 +76,6 @@ module circular_buffer #(
             is_full_next = 0;
             update_empty_on_read();
         end
-        //write only (if buffer not full)
         else if(~read_i & write_i & ~is_full_o)
         begin: write_not_full
             read_ptr_next = read_ptr;
@@ -69,7 +83,6 @@ module circular_buffer #(
             update_full_on_write();
             is_empty_next = 0;
         end
-        //concurrently read and write (if buffer not empty)
         else if(read_i & write_i & ~is_empty_o)
         begin: read_write_not_empty
             read_ptr_next = increase_ptr(read_ptr);
@@ -77,7 +90,6 @@ module circular_buffer #(
             is_full_next = is_full_o;
             is_empty_next = is_empty_o;
         end
-        //default behavior (keep previous state)
         else
         begin: do_nothing
             read_ptr_next = read_ptr;
