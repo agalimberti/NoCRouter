@@ -99,21 +99,21 @@ module circular_buffer #(
         end
     end
 
-    function logic [POINTER_SIZE-1:0] increase_ptr (logic [POINTER_SIZE-1:0] ptr)
+    function logic [POINTER_SIZE-1:0] increase_ptr (input logic [POINTER_SIZE-1:0] ptr);
         if(ptr == BUFFER_SIZE-1)
-            increased_ptr = 0;
+            increase_ptr = 0;
         else
-            increased_ptr = ptr+1;
+            increase_ptr = ptr+1;
     endfunction
 
-    function void update_empty_on_read ()
+    function void update_empty_on_read ();
         if(read_ptr_next == write_ptr)
             is_empty_next = 1;
         else
             is_empty_next = 0;
     endfunction
 
-    function void update_full_on_write ()
+    function void update_full_on_write ();
         if(write_ptr_next == read_ptr)
             is_full_next = 1;
         else
