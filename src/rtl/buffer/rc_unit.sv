@@ -1,21 +1,16 @@
 import noc_params::*;
 
-/*
-This is a first simplified version of the route computation unit module,
-all the integer nets and variables have to be substituted
-by more appropriate ones (see head flit scheme)
-*/
 module rc_unit #(
     parameter X_CURRENT = 0,
     parameter Y_CURRENT = 0
 )(
-    input int x_dest,
-    input int y_dest,
+    input logic [DEST_ADDR_SIZE-1 : 0] x_dest,
+    input logic [DEST_ADDR_SIZE-1 : 0] y_dest,
     output port_t out_port
 );
 
-    int x_offset;
-    int y_offset;
+    logic signed [DEST_ADDR_SIZE-1 : 0] x_offset;
+    logic signed [DEST_ADDR_SIZE-1 : 0] y_offset;
 
     /*
     Combinational logic:
@@ -53,6 +48,10 @@ module rc_unit #(
         else
         begin
             out_port = CENTER;
+            /*
+            branch taken also if the inputs are non-specified (x),
+            hence the need for the usage of a validity bit
+            */
         end
     end
 

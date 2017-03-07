@@ -3,18 +3,18 @@
 import noc_params::*;
 
 module tb_rc_unit #(
-    parameter X_CURRENT = 2,
-    parameter Y_CURRENT = 2
+    parameter X_CURRENT = MESH_SIZE / 2,
+    parameter Y_CURRENT = MESH_SIZE / 2
 );
 
-    int x_dest;
-    int y_dest;
+    logic [DEST_ADDR_SIZE-1 : 0] x_dest;
+    logic [DEST_ADDR_SIZE-1 : 0] y_dest;
     port_t out_port;
 
 	initial
     begin
         dump_output();
-        all_destinations_5x5_mesh();
+        compute_all_destinations_mesh();
         #5 $finish;
     end
 
@@ -31,10 +31,19 @@ module tb_rc_unit #(
         $dumpvars(0, tb_rc_unit);
     endtask
 
-    task all_destinations_5x5_mesh();
-        for(y_dest = 0; y_dest < 5; y_dest++)
-            for(x_dest = 0; x_dest < 5; x_dest++)
-                #5;
+    task compute_all_destinations_mesh();
+        #5 x_dest = 0;
+        y_dest = 0;
+        repeat(MESH_SIZE)
+        begin
+            repeat(MESH_SIZE - 1)
+            begin
+                #5 x_dest ++;
+            end
+            #5 x_dest = 0;
+            y_dest ++;
+        end
+        y_dest = 0;
     endtask
 
 endmodule
