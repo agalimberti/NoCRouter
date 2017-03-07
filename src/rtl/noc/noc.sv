@@ -13,7 +13,7 @@ package noc_params;
 	
 	localparam FLIT_DATA_SIZE = VC_SIZE+2*DEST_ADDR_SIZE+HEAD_PAYLOAD_SIZE;
 
-	typedef enum logic [2:0] {CENTER, UP, DOWN, LEFT, RIGHT} outport_t;
+	typedef enum logic [2:0] {CENTER, UP, DOWN, LEFT, RIGHT} port_t;
 
 	typedef enum logic [1:0] {HEAD, BODY, TAIL} flit_label_t;
 	
