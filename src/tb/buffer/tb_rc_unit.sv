@@ -9,7 +9,7 @@ module tb_rc_unit #(
 
     int x_dest;
     int y_dest;
-    port_type out_port;
+    port_t out_port;
 
 	initial
     begin

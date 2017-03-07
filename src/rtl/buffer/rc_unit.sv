@@ -11,7 +11,7 @@ module rc_unit #(
 )(
     input int x_dest,
     input int y_dest,
-    output port_type out_port
+    output port_t out_port
 );
 
     int x_offset;
