@@ -1,15 +1,9 @@
-package port_type_package;
-    typedef enum {CENTER, LEFT, RIGHT, UP, DOWN} port_type;
-endpackage
-
-import port_type_package::*;
+import noc_params::*;
 
 /*
 This is a first simplified version of the route computation unit module,
 all the integer nets and variables have to be substituted
-by more appropriate ones (see head flit scheme), and the output port encoding
-has to be improved (if needed) and moved in a common top module
-(IMPORTANT: also move other common parameters out of single modules)
+by more appropriate ones (see head flit scheme)
 */
 module rc_unit #(
     parameter X_CURRENT = 0,
@@ -61,4 +55,5 @@ module rc_unit #(
             out_port = CENTER;
         end
     end
+
 endmodule

@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-import port_type_package::*;
+import noc_params::*;
 
 module tb_rc_unit #(
     parameter X_CURRENT = 2,
@@ -32,18 +32,9 @@ module tb_rc_unit #(
     endtask
 
     task all_destinations_5x5_mesh();
-        x_dest = 0;
-        y_dest = 0;
-        repeat(5)
-        begin
-            repeat(4)
-            begin
-                #5 ++x_dest;
-            end
-            #5 x_dest = 0;
-            ++y_dest;
-        end
-        y_dest = 0;
+        for(y_dest = 0; y_dest < 5; y_dest++)
+            for(x_dest = 0; x_dest < 5; x_dest++)
+                #5;
     endtask
 
 endmodule
