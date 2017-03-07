@@ -1,20 +1,21 @@
+import noc_params::*;
+
 module circular_buffer #(
-    parameter BUFFER_SIZE = 8,
-    parameter FLIT_SIZE = 8
+    parameter BUFFER_SIZE = 8
 )(
-    input [FLIT_SIZE-1:0] data_i,
+    input flit_t data_i,
     input read_i,
     input write_i,
     input rst,
     input clk,
-    output [FLIT_SIZE-1:0] data_o,
+    output flit_t data_o,
     output logic is_full_o,
     output logic is_empty_o
 );
 
     localparam [31:0] POINTER_SIZE = $clog2(BUFFER_SIZE);
 
-    logic [FLIT_SIZE-1:0] memory [BUFFER_SIZE-1:0];
+    flit_t memory[BUFFER_SIZE-1:0];
 
     logic [POINTER_SIZE-1:0] read_ptr;
     logic [POINTER_SIZE-1:0] write_ptr;
@@ -23,11 +24,6 @@ module circular_buffer #(
     logic [POINTER_SIZE-1:0] write_ptr_next;
     logic is_full_next;
     logic is_empty_next;
-
-    /*
-    The memory slot pointed by the read_ptr is output at the data_o pin
-    */
-    assign data_o = memory [read_ptr];
 
     /*
     Sequential logic:
@@ -51,13 +47,14 @@ module circular_buffer #(
             write_ptr <= write_ptr_next;
             is_full_o <= is_full_next;
             is_empty_o <= is_empty_next;
+            data_o <= memory [read_ptr];                                    //ATTENTION!!!!
             if((~read_i & write_i & ~is_full_o) | (read_i & write_i))
                 memory[write_ptr] <= data_i;
         end
     end
 
     /*
-    Combinatorial logic:
+    Comnbinational logic:
     - the following operations are accepted:
         * read while the buffer is not empty
         * write while the buffer is not full
