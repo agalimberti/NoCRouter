@@ -1,8 +1,9 @@
 `timescale 1ns / 1ps
 
+import noc_params::*;
+
 module tb_circular_buffer #(
-    parameter BUFFER_SIZE=8,
-    parameter FLIT_SIZE=8
+    parameter BUFFER_SIZE=8
 );
 
     integer i;
@@ -11,8 +12,8 @@ module tb_circular_buffer #(
     logic read_i;
     logic write_i;
 
-    logic [FLIT_SIZE-1:0] data_i;
-    wire [FLIT_SIZE-1:0] data_o;
+    flit_t data_i;
+    flit_t data_o;
     wire is_full_o;
     wire is_empty_o;
 
@@ -35,9 +36,8 @@ module tb_circular_buffer #(
     always #5 clk = ~clk;
 
     circular_buffer #(
-        .BUFFER_SIZE(BUFFER_SIZE),
-        .FLIT_SIZE(FLIT_SIZE)
-         )
+        .BUFFER_SIZE(BUFFER_SIZE)
+        )
     circular_buffer (
         .*
     );
@@ -55,7 +55,7 @@ module tb_circular_buffer #(
         rst     = 1;
         read_i  = 0;
         write_i = 0;
-        data_i  = 0;
+  		  random_head_flit();
     endtask
 
     task clear_reset();
@@ -69,7 +69,7 @@ module tb_circular_buffer #(
             @(posedge clk);
             read_i  <= 0;
             write_i <= is_full_o ? 0 : 1;
-            data_i  <= {FLIT_SIZE{$random}};
+            random_head_flit();
         end
     endtask
 
@@ -79,7 +79,7 @@ module tb_circular_buffer #(
             @(posedge clk);
             read_i  <= 0;
             write_i <= 1;
-            data_i  <= {FLIT_SIZE{$random}};
+            random_head_flit();          
         end
     endtask;
 
@@ -89,7 +89,7 @@ module tb_circular_buffer #(
             @(posedge clk);
             read_i  <= 1;
             write_i <= 1;
-            data_i  <= {FLIT_SIZE{$random}};
+            random_head_flit();
         end
     endtask
 
@@ -108,7 +108,7 @@ module tb_circular_buffer #(
             @(posedge clk);
             read_i  <= is_empty_o ? 0 : 1;
             write_i <= 0;
-            data_i  <= {FLIT_SIZE{$random}};
+           random_head_flit();
         end
     endtask
 
@@ -118,7 +118,7 @@ module tb_circular_buffer #(
             @(posedge clk);
             read_i  <= 1;
             write_i <= 0;
-            data_i  <= {FLIT_SIZE{$random}};
+           random_head_flit();
         end
     endtask
 
@@ -128,8 +128,16 @@ module tb_circular_buffer #(
             @(posedge clk);
             read_i  <= is_empty_o ? 0 : $random;
             write_i <= is_full_o ? 0 : $random;
-            data_i  <= {FLIT_SIZE{$random}};
+           random_head_flit();
         end
     endtask
+    
+    task random_head_flit();
+        data_i.flit_label <= HEAD;
+        data_i.data.head_data.vc_id <= {VC_SIZE{$random}};
+        data_i.data.head_data.x_dest <= {DEST_ADDR_SIZE{$random}};
+    	data_i.data.head_data.y_dest <= {DEST_ADDR_SIZE{$random}}; 
+  		data_i.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{$random}}; 
+   endtask;
 
 endmodule
