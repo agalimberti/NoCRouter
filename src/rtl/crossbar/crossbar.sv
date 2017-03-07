@@ -1,17 +1,18 @@
+import noc_params::*;
+
 module crossbar #(
     parameter INPUT_NUM=2,
-    parameter OUTPUT_NUM=2,
-    parameter FLIT_SIZE=8
+    parameter OUTPUT_NUM=2
 )(
-    input [FLIT_SIZE-1:0] data_i [INPUT_NUM-1:0],
+    input flit_t data_i [INPUT_NUM-1:0],
     input [SEL_SIZE-1:0] sel_i [OUTPUT_NUM-1:0],
-    output logic [FLIT_SIZE-1:0] data_o [OUTPUT_NUM-1:0]
+    output flit_t data_o [OUTPUT_NUM-1:0]
 );
 
     localparam [31:0] SEL_SIZE = $clog2(INPUT_NUM);
 
     /*
-    Combinatorial logic:
+    Combinational logic:
     on each output, propagate the corresponding input
     according to the current selection
     */
