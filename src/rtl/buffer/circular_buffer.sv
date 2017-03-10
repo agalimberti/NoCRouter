@@ -47,7 +47,6 @@ module circular_buffer #(
             write_ptr <= write_ptr_next;
             is_full_o <= is_full_next;
             is_empty_o <= is_empty_next;
-            data_o <= memory [read_ptr];                                    //ATTENTION!!!!
             if((~read_i & write_i & ~is_full_o) | (read_i & write_i))
                 memory[write_ptr] <= data_i;
         end
@@ -63,9 +62,11 @@ module circular_buffer #(
         * full and empty flags are eventually updated
         * read and write pointers are eventually incremented
     - otherwise, the buffer next status doesn't change
+    - additionally, the flit pointed by the read pointer is output
     */
     always_comb
     begin
+        data_o = memory [read_ptr];
         unique if(read_i & ~write_i & ~is_empty_o)
         begin: read_not_empty
             read_ptr_next = increase_ptr(read_ptr);
