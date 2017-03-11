@@ -7,11 +7,15 @@ module tb_circular_buffer #(
 );
 
     integer i;
-
+    integer j = 0;
+    
     logic clk,rst;
     logic read_i;
     logic write_i;
 
+    flit_t flit_vector[BUFFER_SIZE-1:0];
+    flit_t flit_new;
+    flit_t flit_x;
     flit_t data_i;
     flit_t data_o;
     wire is_full_o;
@@ -25,11 +29,9 @@ module tb_circular_buffer #(
         write_until_saturate();
         write_while_full();
         read_and_write_while_full();
-        no_op();
+        refill_vector();
         read_until_empty();
         read_while_empty();
-        no_op();
-        random_reads_writes();
         #20 $finish;
     end
 
@@ -55,7 +57,7 @@ module tb_circular_buffer #(
         rst     = 1;
         read_i  = 0;
         write_i = 0;
-  		  random_head_flit();
+  		fill_vector_and_new();
     endtask
 
     task clear_reset();
@@ -64,52 +66,68 @@ module tb_circular_buffer #(
     endtask
 
     task write_until_saturate();
-        repeat(12)
+        for( i = 0; i < BUFFER_SIZE; i = i + 1)
         begin
             @(posedge clk);
             read_i  <= 0;
             write_i <= is_full_o ? 0 : 1;
-            random_head_flit();
+            data_i <= flit_vector[i];
+            if(~is_empty_o & i > 1)
+                $display("Write Passed");
+            else if(is_empty_o & i > 1)
+                $display("Write Not Passed");
         end
+        for( i = 0; i < 2; i = i + 1 )
+        begin
+        	@(posedge clk);
+        	if(~is_empty_o)
+            	$display("Write Passed");
+        	else if(is_empty_o)
+        		$display("Write Not Passed");
+       	end
     endtask
-
+    
     task write_while_full();
-        repeat(2)
-        begin
-            @(posedge clk);
-            read_i  <= 0;
-            write_i <= 1;
-            random_head_flit();          
-        end
-    endtask;
-
+    	@(posedge clk);
+        read_i  <= 0;
+        write_i <= 1;
+        data_i <= flit_x;
+        if(is_full_o & i > 1)
+        	$display("Write Saturate Passed");
+  		else
+    	    $display("Write Saturate Not Passed");
+   	endtask;
+	
     task read_and_write_while_full();
-        repeat(2)
-        begin
+        @(posedge clk);
+        read_i  <= 1;
+        write_i <= 1;
+        data_i <= flit_new;
+        check_flits();
+        j = 1;
+        for( i = 0; i < 2; i = i + 1 )
             @(posedge clk);
-            read_i  <= 1;
-            write_i <= 1;
-            random_head_flit();
-        end
+        if(is_full_o)
+        	$display("Read and Write while Full Passed");
+        else 
+            $display("Read and Write while Full Not Passed");
     endtask
-
-    task no_op();
-        repeat(2)
-        begin
-            @(posedge clk);
-            read_i  <= 0;
-            write_i <= 0;
-        end
-    endtask
-
-    task read_until_empty();
-        repeat(12)
+	
+	task read_until_empty();
+        for(i = 1; i < BUFFER_SIZE; i = i + 1) 
         begin
             @(posedge clk);
             read_i  <= is_empty_o ? 0 : 1;
             write_i <= 0;
-           random_head_flit();
+           	check_flits();
+           	j = j + 1;
         end
+        for( i = 0; i < 2; i = i + 1 )
+        	@(posedge clk);
+        if(is_empty_o)
+        	$display("Read until empty Passed");
+        else 
+        	$display("Read until empty Not Passed");
     endtask
 
     task read_while_empty();
@@ -118,26 +136,51 @@ module tb_circular_buffer #(
             @(posedge clk);
             read_i  <= 1;
             write_i <= 0;
-           random_head_flit();
         end
+        for( i = 0; i < 2; i = i + 1 )
+        	@(posedge clk);
+        if(is_empty_o)
+        	$display("Read while empty Passed");
+        else 
+          	$display("Read while empty Not Passed");
     endtask
 
-    task random_reads_writes();
-        repeat(15)
-        begin
-            @(posedge clk);
-            read_i  <= is_empty_o ? 0 : $random;
-            write_i <= is_full_o ? 0 : $random;
-           random_head_flit();
-        end
-    endtask
+    task fill_vector_and_new();
+    	for( i = 0; i < BUFFER_SIZE; i = i + 1)
+    	begin
+            flit_vector[i].flit_label <= HEAD;
+            flit_vector[i].data.head_data.vc_id <= {VC_SIZE{i}};
+            flit_vector[i].data.head_data.x_dest <= {DEST_ADDR_SIZE{i}};
+    	    flit_vector[i].data.head_data.y_dest <= {DEST_ADDR_SIZE{i}}; 
+  	    	flit_vector[i].data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{i}};
+  	    end
+  	    	flit_new.flit_label <= HEAD;
+  	        flit_new.data.head_data.vc_id <= {VC_SIZE{BUFFER_SIZE}};
+  	        flit_new.data.head_data.x_dest <= {DEST_ADDR_SIZE{BUFFER_SIZE}};
+  	       	flit_new.data.head_data.y_dest <= {DEST_ADDR_SIZE{BUFFER_SIZE}}; 
+  	      	flit_new.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{BUFFER_SIZE}};
+    endtask;
     
-    task random_head_flit();
-        data_i.flit_label <= HEAD;
-        data_i.data.head_data.vc_id <= {VC_SIZE{$random}};
-        data_i.data.head_data.x_dest <= {DEST_ADDR_SIZE{$random}};
-    	data_i.data.head_data.y_dest <= {DEST_ADDR_SIZE{$random}}; 
-  		data_i.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{$random}}; 
-   endtask;
+    task refill_vector();
+    	for( i = 0; i < BUFFER_SIZE; i = i + 1)
+		begin
+            flit_vector[i].flit_label <= HEAD;
+            flit_vector[i].data.head_data.vc_id <= {VC_SIZE{i + 1}};
+            flit_vector[i].data.head_data.x_dest <= {DEST_ADDR_SIZE{i + 1}};
+        	flit_vector[i].data.head_data.y_dest <= {DEST_ADDR_SIZE{i + 1}}; 
+      	   	flit_vector[i].data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{i + 1}};
+      	end
+    endtask 
 
+    task check_flits();
+    	if(flit_vector[j].flit_label == data_o.flit_label &
+    	   flit_vector[j].data.head_data.vc_id == data_o.data.head_data.vc_id &
+    	   flit_vector[j].data.head_data.x_dest == data_o.data.head_data.x_dest &
+    	   flit_vector[j].data.head_data.y_dest == data_o.data.head_data.y_dest &
+    	   flit_vector[j].data.head_data.head_pl == data_o.data.head_data.head_pl)
+    		$display("Read Passed");
+    	else
+    		$display("Read Not Passed");    
+    endtask 
+    
 endmodule
