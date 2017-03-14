@@ -72,18 +72,27 @@ module tb_circular_buffer #(
             read_i  <= 0;
             write_i <= is_full_o ? 0 : 1;
             data_i <= flit_vector[i];
-            if(~is_empty_o & i > 1)
-                $display("[Write] Passed");
-            else if(is_empty_o & i > 1)
-                $display("[Write] Not Passed");
+            if(is_empty_o & i > 1)
+            begin
+                $display("[BUFFER WRITE] Failed");
+                return;
+            end
         end
         for( i = 0; i < 2; i = i + 1 )
         begin
         	@(posedge clk);
-        	if(~is_empty_o)
-            	$display("[Write] Passed");
-        	else if(is_empty_o)
-        		$display("[Write] Failed");
+        	if(is_empty_o)
+        	begin
+        		$display("[BUFFER WRITE] Failed");
+        		return;
+        	end
+       	end
+       	if(is_full_o)
+       		$display("[BUFFER WRITE UNTIL SATURATE] Passed");
+       	else
+       	  	begin
+       		$display("[BUFFER WRITE UNTIL SATURATE] Failed");
+       	    return;
        	end
     endtask
     
@@ -93,9 +102,12 @@ module tb_circular_buffer #(
         write_i <= 1;
         data_i <= flit_x;
         if(is_full_o & i > 1)
-        	$display("[Write Saturate] Passed");
+        	$display("[BUFFER WRITE WHILE FULL] Passed");
   		else
-    	    $display("[Write Saturate] Failed");
+  		begin
+    	    $display("[BUFFER WRITE WHILE FULL] Failed");
+    	    return;
+    	end
    	endtask;
 	
     task read_and_write_while_full();
@@ -108,9 +120,12 @@ module tb_circular_buffer #(
         for( i = 0; i < 2; i = i + 1 )
             @(posedge clk);
         if(is_full_o)
-        	$display("[Read and Write while Full] Passed");
-        else 
-            $display("[Read and Write while Full] Failed");
+        	$display("[BUFFER READ AND WRITE WHILE FULL] Passed");
+        else
+        begin
+            $display("[BUFFER READ AND WRITE WHILE FULL] Failed");
+            return;
+        end 
     endtask
 	
 	task read_until_empty();
@@ -120,15 +135,25 @@ module tb_circular_buffer #(
             read_i  <= is_empty_o ? 0 : 1;
             write_i <= 0;
             if(i < BUFFER_SIZE - 1)
-           		check_flits();
+            begin
+            	if(~check_flits())
+            	begin 
+            		$display("[BUFFER READ] Failed");
+            		return;
+            	end
+            end
+           		
            	j = j + 1;
         end
         for( i = 0; i < 2; i = i + 1 )
         	@(posedge clk);
         if(is_empty_o)
-        	$display("[Read until empty] Passed");
-        else 
-        	$display("[Read until empty] Failed");
+        	$display("[BUFFER READ UNTIL EMPTY] Passed");
+        else
+       	begin 
+        	$display("[BUFFER READ UNTIL EMPTY] Failed");
+        	return;
+        end
     endtask
 
     task read_while_empty();
@@ -141,9 +166,12 @@ module tb_circular_buffer #(
         for( i = 0; i < 2; i = i + 1 )
         	@(posedge clk);
         if(is_empty_o)
-        	$display("[Read while empty] Passed");
-        else 
-          	$display("[Read while empty] Failed");
+        	$display("[BUFFER READ WHILE EMPTY] Passed");
+        else
+        begin 
+          	$display("[BUFFER READ WHILE EMPTY] Failed");
+          	return;
+       	end
     endtask
 
     task fill_vector_and_new();
@@ -173,15 +201,15 @@ module tb_circular_buffer #(
       	end
     endtask 
 
-    task check_flits();
+    function logic check_flits();
     	if(flit_vector[j].flit_label == data_o.flit_label &
     	   flit_vector[j].data.head_data.vc_id == data_o.data.head_data.vc_id &
     	   flit_vector[j].data.head_data.x_dest == data_o.data.head_data.x_dest &
     	   flit_vector[j].data.head_data.y_dest == data_o.data.head_data.y_dest &
     	   flit_vector[j].data.head_data.head_pl == data_o.data.head_data.head_pl)
-    		$display("[Read] Passed");
+    	    check_flits = 1;
     	else
-    		$display("[Read] Failed");    
-    endtask 
+    		check_flits = 0;   
+    endfunction 
     
 endmodule
