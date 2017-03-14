@@ -4,9 +4,7 @@ module rc_unit #(
     parameter X_CURRENT = 0,
     parameter Y_CURRENT = 0
 )(
-    input logic [DEST_ADDR_SIZE-1 : 0] x_dest,
-    input logic [DEST_ADDR_SIZE-1 : 0] y_dest,
-    output port_t out_port
+    rc_unit2input_port ip
 );
 
     logic signed [DEST_ADDR_SIZE-1 : 0] x_offset;
@@ -26,28 +24,28 @@ module rc_unit #(
     */
     always_comb
     begin
-        x_offset = x_dest - X_CURRENT;
-        y_offset = y_dest - Y_CURRENT;
+        x_offset = iface.x_dest - X_CURRENT;
+        y_offset = iface.y_dest - Y_CURRENT;
 
         unique if (x_offset < 0)
         begin
-            out_port = LEFT;
+            iface.out_port = LEFT;
         end
         else if (x_offset > 0)
         begin
-            out_port = RIGHT;
+            iface.out_port = RIGHT;
         end
         else if (x_offset == 0 & y_offset < 0)
         begin
-            out_port = UP;
+            iface.out_port = UP;
         end
         else if (x_offset == 0 & y_offset > 0)
         begin
-            out_port = DOWN;
+            iface.out_port = DOWN;
         end
         else
         begin
-            out_port = CENTER;
+           iface.out_port = CENTER;
             /*
             branch taken also if the inputs are non-specified (x),
             hence the need for the usage of a validity bit
