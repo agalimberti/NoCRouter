@@ -8,11 +8,11 @@ module tb_rc_unit #(
     parameter X_CURRENT = MESH_SIZE / 2,
     parameter Y_CURRENT = MESH_SIZE / 2
 );
-	logic [DEST_ADDR_SIZE-1 : 0] x_dest;
+    logic [DEST_ADDR_SIZE-1 : 0] x_dest;
     logic [DEST_ADDR_SIZE-1 : 0] y_dest;
     port_t out_port;
 
-	initial
+    initial
     begin
         dump_output();
         compute_all_destinations_mesh();
@@ -33,45 +33,40 @@ module tb_rc_unit #(
     endtask
 
     task compute_all_destinations_mesh();
-    	repeat(MESH_SIZE)
-    	begin
-   			repeat(MESH_SIZE)
-    		begin
-    			#5
-        		x_dest = i;
-        		y_dest = j;
-        		#5 
-        		check_dest();
-        		i = i + 1;
-    		end
-    		i = 0;
-    		j = j + 1;
-    	end
+        repeat(MESH_SIZE)
+        begin
+            repeat(MESH_SIZE)
+            begin
+                #5
+                x_dest = i;
+                y_dest = j;
+                #5 
+                if(~check_dest())
+                begin
+                    $display("[RCUNIT] Failed");
+                    return;
+                end
+                i = i + 1;
+            end
+            i = 0;
+            j = j + 1;
+        end
+        $display("[RCUNIT] Passed");
     endtask
 
-	task check_dest();
-		if(x_dest < X_CURRENT & out_port == LEFT)
-			$display("[LEFT] Passed");
-		else if(x_dest < X_CURRENT & out_port != LEFT)
-			$display("[LEFT] Failed");
-		else if(x_dest > X_CURRENT & out_port == RIGHT)
-			$display("[RIGHT] Passed");
-		else if(x_dest > X_CURRENT & out_port != RIGHT)
-			$display("[RIGHT] Failed");
-		else if(x_dest == X_CURRENT & y_dest < Y_CURRENT & out_port == UP)
-			$display("[UP] Passed");
-		else if(x_dest == X_CURRENT & y_dest < Y_CURRENT & out_port != UP)
-			$display("[UP] Failed");
-		else if(x_dest == X_CURRENT & y_dest > Y_CURRENT & out_port == DOWN)
-			$display("[DOWN] Passed");
-		else if(x_dest == X_CURRENT & y_dest > Y_CURRENT & out_port != DOWN)
-			$display("[DOWN] Failed");
-		else if(x_dest == X_CURRENT & y_dest == Y_CURRENT & out_port == CENTER)
-			$display("[CENTER] Passed");
-		else if(x_dest == X_CURRENT & y_dest == Y_CURRENT & out_port != CENTER)
-			$display("[CENTER] Failed");
-		else 
-			$display("Failed");
-	endtask
+    function logic check_dest();
+        if(x_dest < X_CURRENT & out_port == LEFT)
+            check_dest = 1;
+        else if(x_dest > X_CURRENT & out_port == RIGHT)
+            check_dest = 1;
+        else if(x_dest == X_CURRENT & y_dest < Y_CURRENT & out_port == UP)
+            check_dest = 1;
+        else if(x_dest == X_CURRENT & y_dest > Y_CURRENT & out_port == DOWN)
+            check_dest = 1;
+        else if(x_dest == X_CURRENT & y_dest == Y_CURRENT & out_port == CENTER)
+            check_dest = 1;
+        else
+            check_dest = 0;
+    endfunction
 
 endmodule
