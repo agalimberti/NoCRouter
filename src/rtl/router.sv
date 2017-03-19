@@ -1,5 +1,6 @@
 import noc_params::*;
 
+module router(input clk, input rst, router2router if_router);
 
 
 
@@ -17,7 +18,6 @@ interface input_port2crossbar;
 endinterface
 
 
-module router(input clk, rst);
 
 
     input_port
