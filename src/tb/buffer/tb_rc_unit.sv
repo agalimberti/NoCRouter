@@ -7,9 +7,9 @@ module tb_rc_unit #(
     parameter Y_CURRENT = MESH_SIZE / 2
 );
 
-    logic [DEST_ADDR_SIZE-1 : 0] x_dest_i;
-    logic [DEST_ADDR_SIZE-1 : 0] y_dest_i;
-    port_t out_port_o;
+    logic [DEST_ADDR_SIZE-1 : 0] x_dest;
+    logic [DEST_ADDR_SIZE-1 : 0] y_dest;
+    port_t out_port;
 
 	initial
     begin
@@ -32,18 +32,18 @@ module tb_rc_unit #(
     endtask
 
     task compute_all_destinations_mesh();
-        #5 x_dest_i = 0;
-        y_dest_i = 0;
+        #5 x_dest = 0;
+        y_dest = 0;
         repeat(MESH_SIZE)
         begin
             repeat(MESH_SIZE - 1)
             begin
-                #5 x_dest_i ++;
+                #5 x_dest ++;
             end
-            #5 x_dest_i = 0;
-            y_dest_i ++;
+            #5 x_dest = 0;
+            y_dest ++;
         end
-        y_dest_i = 0;
+        y_dest = 0;
     endtask
 
 endmodule
