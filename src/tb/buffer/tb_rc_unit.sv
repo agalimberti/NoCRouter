@@ -8,9 +8,9 @@ module tb_rc_unit #(
     parameter X_CURRENT = MESH_SIZE / 2,
     parameter Y_CURRENT = MESH_SIZE / 2
 );
-    logic [DEST_ADDR_SIZE-1 : 0] x_dest;
-    logic [DEST_ADDR_SIZE-1 : 0] y_dest;
-    port_t out_port;
+    logic [DEST_ADDR_SIZE-1 : 0] x_dest_i;
+    logic [DEST_ADDR_SIZE-1 : 0] y_dest_i;
+    port_t out_port_o;
 
     initial
     begin
@@ -38,8 +38,8 @@ module tb_rc_unit #(
             repeat(MESH_SIZE)
             begin
                 #5
-                x_dest = i;
-                y_dest = j;
+                x_dest_i = i;
+                y_dest_i = j;
                 #5 
                 if(~check_dest())
                 begin
@@ -55,15 +55,15 @@ module tb_rc_unit #(
     endtask
 
     function logic check_dest();
-        if(x_dest < X_CURRENT & out_port == LEFT)
+        if(x_dest_i < X_CURRENT & out_port_o == LEFT)
             check_dest = 1;
-        else if(x_dest > X_CURRENT & out_port == RIGHT)
+        else if(x_dest_i > X_CURRENT & out_port_o == RIGHT)
             check_dest = 1;
-        else if(x_dest == X_CURRENT & y_dest < Y_CURRENT & out_port == UP)
+        else if(x_dest_i == X_CURRENT & y_dest_i < Y_CURRENT & out_port_o == UP)
             check_dest = 1;
-        else if(x_dest == X_CURRENT & y_dest > Y_CURRENT & out_port == DOWN)
+        else if(x_dest_i == X_CURRENT & y_dest_i > Y_CURRENT & out_port_o == DOWN)
             check_dest = 1;
-        else if(x_dest == X_CURRENT & y_dest == Y_CURRENT & out_port == CENTER)
+        else if(x_dest_i == X_CURRENT & y_dest_i == Y_CURRENT & out_port_o == CENTER)
             check_dest = 1;
         else
             check_dest = 0;

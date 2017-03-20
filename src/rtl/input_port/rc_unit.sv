@@ -47,7 +47,7 @@ module rc_unit #(
         end
         else
         begin
-           out_port_o = CENTER;
+            out_port_o = CENTER;
             /*
             branch taken also if the inputs are non-specified (x),
             hence the need for the usage of a validity bit
