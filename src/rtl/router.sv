@@ -9,6 +9,7 @@ module router(input clk, input rst, router2router if_router);
         ip0(
             .clk(clk),
             .rst(rst),
+            .crossbar_if(ip0_2_xbar)
         );
      
     crossbar xbar;

@@ -2,9 +2,11 @@ import noc_params::*;
 
 module input_port #(
         parameter BUFFER_SIZE = 8
-    )(  input clk, input rst, 
-        input_port2crossbar if_crossbar, 
-        input_port2switch_allocator if_sa
+    )( 
+        input clk, 
+        input rst, 
+        input_port2crossbar.input_port crossbar_if, 
+        input_port2switch_allocator.input_port sa_if
     );
 
     input_buffer
@@ -27,7 +29,7 @@ module input_port #(
         //if(data_i.flit_label == HEAD)
             //Assert validity bit to RC unit
             
-        //Assert read signal 
+        //Assert write signal 
     end
 
 endmodule
