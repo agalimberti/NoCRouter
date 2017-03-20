@@ -4,30 +4,29 @@ module input_buffer #(
     parameter BUFFER_SIZE = 8
 )(
     input flit_t data_i,
-    output flit_t data_o,
+    input read_i,
+    input write_i,
     input rst,
-    input clk
+    input clk,
+    output flit_t data_o,
+    output logic is_full_o,
+    output logic is_empty_o
 );
 
-    logic read_cmd, write_cmd;
-    wire buf_full, buf_empty;
-
     circular_buffer  #(
-            .BUFFER_SIZE(BUFFER_SIZE)
-            )
+        .BUFFER_SIZE(BUFFER_SIZE)
+        )
         circular_buffer (
-            .read_i(read_cmd),
-            .write_i(write_cmd),
-            .is_full_o(buf_full),
-            .is_empty_o(buf_empty),
-            .*
-        );
+        .*
+    );
     
-    //FSM
+    
+    // TODO
+    // FSM
     logic [1:0] ss, ss_next;
     localparam IDLE=2'b00, VA=2'b01, SA=2'b10;
     
-    //Status update
+    // Status update
     always_ff @(posedge clk, rst)
     begin
         if(rst)
@@ -36,7 +35,7 @@ module input_buffer #(
             ss <= ss_next;
     end
     
-    //Combinational logic for next state
+    // Combinational logic for next state
     always_comb
     begin
         ss = ss_next;
@@ -53,7 +52,7 @@ module input_buffer #(
                 end
             SA:
                 begin
-                    if(buf_empty)
+                    if(is_empty_o)
                         ss_next = IDLE;
                 end
         endcase
