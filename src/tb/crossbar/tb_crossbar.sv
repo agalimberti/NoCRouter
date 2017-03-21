@@ -31,7 +31,9 @@ module tb_crossbar #(
         .OUTPUT_NUM(OUTPUT_NUM)
         )
     crossbar (
-        .*
+        .data_i(data_i),
+        .sel_i(sel_i),
+        .data_o(data_o)
     );
 
     task dump_output();

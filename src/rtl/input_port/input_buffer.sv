@@ -13,11 +13,18 @@ module input_buffer #(
     output logic is_empty_o
 );
 
-    circular_buffer  #(
+    circular_buffer #(
         .BUFFER_SIZE(BUFFER_SIZE)
         )
-        circular_buffer (
-        .*
+    circular_buffer (
+        .data_i(data_i),
+        .read_i(read_i),
+        .write_i(write_i),
+        .rst(rst),
+        .clk(clk),
+        .data_o(data_o),
+        .is_full_o(is_full_o),
+        .is_empty_o(is_empty_o)
     );
     
     

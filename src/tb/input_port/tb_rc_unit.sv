@@ -24,7 +24,9 @@ module tb_rc_unit #(
         .Y_CURRENT(Y_CURRENT)
     )
     rc_unit (
-        .*
+        .x_dest_i(x_dest_i),
+        .y_dest_i(y_dest_i),
+        .out_port_o(out_port_o)
     );
 
     task dump_output();
