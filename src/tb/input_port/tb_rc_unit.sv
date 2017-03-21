@@ -5,11 +5,13 @@ import noc_params::*;
 int i = 0;
 int j = 0;
 module tb_rc_unit #(
-    parameter X_CURRENT = MESH_SIZE / 2,
-    parameter Y_CURRENT = MESH_SIZE / 2
+    parameter X_CURRENT = MESH_SIZE_X / 2,
+    parameter Y_CURRENT = MESH_SIZE_Y / 2,
+    parameter DEST_ADDR_SIZE_X = DEST_ADDR_SIZE_X,
+    parameter DEST_ADDR_SIZE_Y = DEST_ADDR_SIZE_Y    
 );
-    logic [DEST_ADDR_SIZE-1 : 0] x_dest_i;
-    logic [DEST_ADDR_SIZE-1 : 0] y_dest_i;
+    logic [DEST_ADDR_SIZE_X-1 : 0] x_dest_i;
+    logic [DEST_ADDR_SIZE_Y-1 : 0] y_dest_i;
     port_t out_port_o;
 
     initial
@@ -35,9 +37,9 @@ module tb_rc_unit #(
     endtask
 
     task compute_all_destinations_mesh();
-        repeat(MESH_SIZE)
+        repeat(MESH_SIZE_Y)
         begin
-            repeat(MESH_SIZE)
+            repeat(MESH_SIZE_X)
             begin
                 #5
                 x_dest_i = i;

@@ -186,14 +186,14 @@ module tb_circular_buffer #(
     	begin
             flit_vector[i].flit_label <= HEAD;
             flit_vector[i].data.head_data.vc_id <= {VC_SIZE{i}};
-            flit_vector[i].data.head_data.x_dest <= {DEST_ADDR_SIZE{i}};
-    	    flit_vector[i].data.head_data.y_dest <= {DEST_ADDR_SIZE{i}}; 
+            flit_vector[i].data.head_data.x_dest <= {DEST_ADDR_SIZE_X{i}};
+    	    flit_vector[i].data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{i}}; 
   	    	flit_vector[i].data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{i}};
   	    end
   	    	flit_new.flit_label <= HEAD;
   	        flit_new.data.head_data.vc_id <= {VC_SIZE{BUFFER_SIZE}};
-  	        flit_new.data.head_data.x_dest <= {DEST_ADDR_SIZE{BUFFER_SIZE}};
-  	       	flit_new.data.head_data.y_dest <= {DEST_ADDR_SIZE{BUFFER_SIZE}}; 
+  	        flit_new.data.head_data.x_dest <= {DEST_ADDR_SIZE_X{BUFFER_SIZE}};
+  	       	flit_new.data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{BUFFER_SIZE}}; 
   	      	flit_new.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{BUFFER_SIZE}};
     endtask;
     
@@ -202,8 +202,8 @@ module tb_circular_buffer #(
 		begin
             flit_vector[i].flit_label <= HEAD;
             flit_vector[i].data.head_data.vc_id <= {VC_SIZE{i + 1}};
-            flit_vector[i].data.head_data.x_dest <= {DEST_ADDR_SIZE{i + 1}};
-        	flit_vector[i].data.head_data.y_dest <= {DEST_ADDR_SIZE{i + 1}}; 
+            flit_vector[i].data.head_data.x_dest <= {DEST_ADDR_SIZE_X{i + 1}};
+        	flit_vector[i].data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{i + 1}}; 
       	   	flit_vector[i].data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{i + 1}};
       	end
     endtask 
