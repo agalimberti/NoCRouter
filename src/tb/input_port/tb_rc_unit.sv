@@ -55,15 +55,15 @@ module tb_rc_unit #(
     endtask
 
     function logic check_dest();
-        if(x_dest_i < X_CURRENT & out_port_o == LEFT)
+        if(x_dest_i < X_CURRENT & out_port_o == WEST)
             check_dest = 1;
-        else if(x_dest_i > X_CURRENT & out_port_o == RIGHT)
+        else if(x_dest_i > X_CURRENT & out_port_o == EAST)
             check_dest = 1;
-        else if(x_dest_i == X_CURRENT & y_dest_i < Y_CURRENT & out_port_o == UP)
+        else if(x_dest_i == X_CURRENT & y_dest_i < Y_CURRENT & out_port_o == NORTH)
             check_dest = 1;
-        else if(x_dest_i == X_CURRENT & y_dest_i > Y_CURRENT & out_port_o == DOWN)
+        else if(x_dest_i == X_CURRENT & y_dest_i > Y_CURRENT & out_port_o == SOUTH)
             check_dest = 1;
-        else if(x_dest_i == X_CURRENT & y_dest_i == Y_CURRENT & out_port_o == CENTER)
+        else if(x_dest_i == X_CURRENT & y_dest_i == Y_CURRENT & out_port_o == LOCAL)
             check_dest = 1;
         else
             check_dest = 0;

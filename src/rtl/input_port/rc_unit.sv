@@ -31,23 +31,23 @@ module rc_unit #(
 
         unique if (x_offset < 0)
         begin
-            out_port_o = LEFT;
+            out_port_o = WEST;
         end
         else if (x_offset > 0)
         begin
-            out_port_o = RIGHT;
+            out_port_o = EAST;
         end
         else if (x_offset == 0 & y_offset < 0)
         begin
-            out_port_o = UP;
+            out_port_o = NORTH;
         end
         else if (x_offset == 0 & y_offset > 0)
         begin
-            out_port_o = DOWN;
+            out_port_o = SOUTH;
         end
         else
         begin
-            out_port_o = CENTER;
+            out_port_o = LOCAL;
             /*
             branch taken also if the inputs are non-specified (x),
             hence the need for the usage of a validity bit
