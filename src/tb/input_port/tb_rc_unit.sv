@@ -5,11 +5,15 @@ import noc_params::*;
 int i = 0;
 int j = 0;
 module tb_rc_unit #(
+    parameter MESH_SIZE_X = 5,
+    parameter MESH_SIZE_Y = 7,
     parameter X_CURRENT = MESH_SIZE_X / 2,
-    parameter Y_CURRENT = MESH_SIZE_Y / 2,
-    parameter DEST_ADDR_SIZE_X = DEST_ADDR_SIZE_X,
-    parameter DEST_ADDR_SIZE_Y = DEST_ADDR_SIZE_Y    
+    parameter Y_CURRENT = MESH_SIZE_Y / 2
 );
+
+    localparam [31:0] DEST_ADDR_SIZE_X = $clog2(MESH_SIZE_X);
+    localparam [31:0] DEST_ADDR_SIZE_Y = $clog2(MESH_SIZE_Y);
+ 
     logic [DEST_ADDR_SIZE_X-1 : 0] x_dest_i;
     logic [DEST_ADDR_SIZE_Y-1 : 0] y_dest_i;
     port_t out_port_o;
@@ -23,7 +27,9 @@ module tb_rc_unit #(
 
     rc_unit #(
         .X_CURRENT(X_CURRENT),
-        .Y_CURRENT(Y_CURRENT)
+        .Y_CURRENT(Y_CURRENT),
+        .DEST_ADDR_SIZE_X(DEST_ADDR_SIZE_X),
+        .DEST_ADDR_SIZE_Y(DEST_ADDR_SIZE_Y)
     )
     rc_unit (
         .x_dest_i(x_dest_i),

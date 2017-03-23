@@ -3,8 +3,8 @@ import noc_params::*;
 module rc_unit #(
     parameter X_CURRENT = 0,
     parameter Y_CURRENT = 0,
-    parameter DEST_ADDR_SIZE_X = DEST_ADDR_SIZE_X,
-    parameter DEST_ADDR_SIZE_Y = DEST_ADDR_SIZE_Y    
+    parameter DEST_ADDR_SIZE_X = 4,
+    parameter DEST_ADDR_SIZE_Y = 4    
 )(
     input logic [DEST_ADDR_SIZE_X-1 : 0] x_dest_i,
     input logic [DEST_ADDR_SIZE_Y-1 : 0] y_dest_i,
