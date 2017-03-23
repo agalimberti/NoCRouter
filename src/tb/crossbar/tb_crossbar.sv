@@ -10,6 +10,7 @@ module tb_crossbar #(
 );
 
     localparam [31:0] SEL_SIZE = $clog2(INPUT_NUM);
+    
     flit_t flit_test;
     flit_t flit_x;
     flit_t data_i [INPUT_NUM-1:0];
@@ -67,7 +68,7 @@ module tb_crossbar #(
     
     task fill_data_i();
         data_i[j].flit_label <= HEAD;
-        data_i[j].data.head_data.vc_id <= 1;
+        data_i[j].vc_id <= 1;
         data_i[j].data.head_data.x_dest <= 1;
         data_i[j].data.head_data.y_dest <= 1; 
         data_i[j].data.head_data.head_pl <= 1;
@@ -75,7 +76,7 @@ module tb_crossbar #(
     
     task fill_flit_x();
         flit_x.flit_label <= HEAD;
-        flit_x.data.head_data.vc_id <= 10;
+        flit_x.vc_id <= 10;
         flit_x.data.head_data.x_dest <= 10;
         flit_x.data.head_data.y_dest <= 10; 
         flit_x.data.head_data.head_pl <= 10; 
@@ -84,7 +85,7 @@ module tb_crossbar #(
     function logic check_flits();
         for( i = 0; i < INPUT_NUM; i = i + 1)
             if(data_i[i].flit_label == data_o[sel_i[i]].flit_label & 
-                    data_i[i].data.head_data.vc_id == data_o[sel_i[i]].data.head_data.vc_id &
+                    data_i[i].vc_id == data_o[sel_i[i]].vc_id &
                     data_i[i].data.head_data.x_dest == data_o[sel_i[i]].data.head_data.x_dest &
                     data_i[i].data.head_data.y_dest == data_o[sel_i[i]].data.head_data.y_dest &
                     data_i[i].data.head_data.head_pl == data_o[sel_i[i]].data.head_data.head_pl)
