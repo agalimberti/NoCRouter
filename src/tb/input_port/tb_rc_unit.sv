@@ -2,15 +2,14 @@
 
 import noc_params::*;
  
-int i = 0;
-int j = 0;
+
 module tb_rc_unit #(
     parameter MESH_SIZE_X = 5,
     parameter MESH_SIZE_Y = 7,
     parameter X_CURRENT = MESH_SIZE_X / 2,
     parameter Y_CURRENT = MESH_SIZE_Y / 2
 );
-
+    int i, j;
     localparam [31:0] DEST_ADDR_SIZE_X = $clog2(MESH_SIZE_X);
     localparam [31:0] DEST_ADDR_SIZE_Y = $clog2(MESH_SIZE_Y);
  
@@ -43,6 +42,8 @@ module tb_rc_unit #(
     endtask
 
     task compute_all_destinations_mesh();
+        i = 0;
+        j = 0;
         repeat(MESH_SIZE_Y)
         begin
             repeat(MESH_SIZE_X)

@@ -2,15 +2,13 @@
 
 import noc_params::*;
 
-int i;
-int j=0;
 module tb_crossbar #(
     parameter INPUT_NUM = 4,
     parameter OUTPUT_NUM = 4
 );
 
     localparam [31:0] SEL_SIZE = $clog2(INPUT_NUM);
-    
+    int i, j;
     flit_t flit_test;
     flit_t flit_x;
     flit_t data_i [INPUT_NUM-1:0];
@@ -43,6 +41,7 @@ module tb_crossbar #(
     endtask
 
     task test();
+        j = 0;
         repeat(OUTPUT_NUM) 
         begin
             #5
