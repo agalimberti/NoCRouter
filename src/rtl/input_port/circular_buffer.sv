@@ -53,7 +53,7 @@ module circular_buffer #(
     end
 
     /*
-    Comnbinational logic:
+    Combinational logic:
     - the following operations are accepted:
         * read while the buffer is not empty
         * write while the buffer is not full
