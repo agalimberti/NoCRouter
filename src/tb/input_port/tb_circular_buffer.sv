@@ -13,8 +13,8 @@ module tb_circular_buffer #(
     logic read_i;
     logic write_i;
 
-    flit_t flit_vector[BUFFER_SIZE-1:0];
-    flit_t flit_new;
+    flit_t flit_queue[$];
+    flit_t flit_written;
     flit_t flit_x;
     flit_t data_i;
     flit_t data_o;
@@ -29,7 +29,6 @@ module tb_circular_buffer #(
         write_until_saturate();
         write_while_full();
         read_and_write_while_full();
-        refill_vector();
         read_until_empty();
         read_while_empty();
         #20 $finish;
@@ -64,7 +63,7 @@ module tb_circular_buffer #(
         rst     = 1;
         read_i  = 0;
         write_i = 0;
-  		fill_vector_and_new();
+        insert_flit();
     endtask
 
     task clear_reset();
@@ -78,7 +77,9 @@ module tb_circular_buffer #(
             @(posedge clk);
             read_i  <= 0;
             write_i <= is_full_o ? 0 : 1;
-            data_i <= flit_vector[i];
+            if( i < BUFFER_SIZE - 1)
+            	insert_flit();
+            data_i <= flit_written; 
             if(is_empty_o & i > 1)
             begin
                 $display("[BUFFER WRITE] Failed");
@@ -121,18 +122,18 @@ module tb_circular_buffer #(
         @(posedge clk);
         read_i  <= 1;
         write_i <= 1;
-        data_i <= flit_new;
-        check_flits();
-        j = 1;
-        for( i = 0; i < 2; i = i + 1 )
-            @(posedge clk);
-        if(is_full_o)
+        insert_flit();
+        #10
+        data_i <= flit_written; 
+        flit_queue.pop_front;
+        if(is_full_o & check_flits())
         	$display("[BUFFER READ AND WRITE WHILE FULL] Passed");
         else
         begin
             $display("[BUFFER READ AND WRITE WHILE FULL] Failed");
             return;
-        end 
+        end
+         
     endtask
 	
 	task read_until_empty();
@@ -141,6 +142,8 @@ module tb_circular_buffer #(
             @(posedge clk);
             read_i  <= is_empty_o ? 0 : 1;
             write_i <= 0;
+            flit_queue.pop_front;
+            #5
             if(i < BUFFER_SIZE - 1)
             begin
             	if(~check_flits())
@@ -148,9 +151,7 @@ module tb_circular_buffer #(
             		$display("[BUFFER READ] Failed");
             		return;
             	end
-            end
-           		
-           	j = j + 1;
+            end	
         end
         for( i = 0; i < 2; i = i + 1 )
         	@(posedge clk);
@@ -181,39 +182,21 @@ module tb_circular_buffer #(
        	end
     endtask
 
-    task fill_vector_and_new();
-    	for( i = 0; i < BUFFER_SIZE; i = i + 1)
-    	begin
-            flit_vector[i].flit_label <= HEAD;
-            flit_vector[i].vc_id <= {VC_SIZE{i}};
-            flit_vector[i].data.head_data.x_dest <= {DEST_ADDR_SIZE_X{i}};
-    	    flit_vector[i].data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{i}}; 
-  	    	flit_vector[i].data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{i}};
-  	    end
-  	    	flit_new.flit_label <= HEAD;
-  	        flit_new.vc_id <= {VC_SIZE{BUFFER_SIZE}};
-  	        flit_new.data.head_data.x_dest <= {DEST_ADDR_SIZE_X{BUFFER_SIZE}};
-  	       	flit_new.data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{BUFFER_SIZE}}; 
-  	      	flit_new.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{BUFFER_SIZE}};
-    endtask;
-    
-    task refill_vector();
-    	for( i = 0; i < BUFFER_SIZE; i = i + 1)
-		begin
-            flit_vector[i].flit_label <= HEAD;
-            flit_vector[i].vc_id <= {VC_SIZE{i + 1}};
-            flit_vector[i].data.head_data.x_dest <= {DEST_ADDR_SIZE_X{i + 1}};
-        	flit_vector[i].data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{i + 1}}; 
-      	   	flit_vector[i].data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{i + 1}};
-      	end
-    endtask 
+    task insert_flit();
+ 		flit_written.flit_label <= HEAD;
+        flit_written.vc_id <= {VC_SIZE{flit_queue.size()}};
+        flit_written.data.head_data.x_dest <= {DEST_ADDR_SIZE_X{flit_queue.size()}};
+    	flit_written.data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{flit_queue.size()}}; 
+  	    flit_written.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{flit_queue.size()}};
+  	    flit_queue.push_back(flit_written);
+    endtask
 
     function logic check_flits();
-    	if(flit_vector[j].flit_label == data_o.flit_label &
-    	   flit_vector[j].vc_id == data_o.vc_id &
-    	   flit_vector[j].data.head_data.x_dest == data_o.data.head_data.x_dest &
-    	   flit_vector[j].data.head_data.y_dest == data_o.data.head_data.y_dest &
-    	   flit_vector[j].data.head_data.head_pl == data_o.data.head_data.head_pl)
+    	if(flit_queue[0].flit_label == data_o.flit_label &
+    	   flit_queue[0].vc_id == data_o.vc_id &
+    	   flit_queue[0].data.head_data.x_dest == data_o.data.head_data.x_dest &
+    	   flit_queue[0].data.head_data.y_dest == data_o.data.head_data.y_dest &
+    	   flit_queue[0].data.head_data.head_pl == data_o.data.head_data.head_pl)
     	    check_flits = 1;
     	else
     		check_flits = 0;   
