@@ -21,7 +21,7 @@ module input_buffer #(
 
     logic [VC_SIZE-1:0] downstream_vc, downstream_vc_next;
 
-    output flit_t read_flit,
+    flit_t read_flit;
 
     port_t out_port_next;
 
