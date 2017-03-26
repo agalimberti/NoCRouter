@@ -42,7 +42,7 @@ module input_port #(
                 .data_o(data[vc]),
                 .is_full_o(is_full[vc]),
                 .is_empty_o(is_empty[vc]),
-                .out_port_o(out_port[vc])
+                .out_port_o(sa_if.out_port[vc])
             );
         end
     endgenerate
