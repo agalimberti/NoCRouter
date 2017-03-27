@@ -62,7 +62,7 @@ module input_buffer #(
 		data_o.data = read_flit.data;
 
         ss_next = ss;
-        out_port_next = out_port;
+        out_port_next = out_port_o;
         downstream_vc_next = downstream_vc;
         
         unique case(ss)
