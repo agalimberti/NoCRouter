@@ -10,8 +10,8 @@ module input_port #(
     input rst,
     input clk,
     input_port2crossbar.input_port crossbar_if,
-    input_port2switch_allocator.input_port sa_if
-    input_port2virtual_channel_allocator.input_port va_if
+    input_port2switch_allocator.input_port sa_if,
+    input_port2vc_allocator.input_port va_if
 );
 
     flit_t [VC_NUM-1:0] data;
@@ -28,7 +28,7 @@ module input_port #(
         for(vc=0; vc<VC_NUM; vc++)
         begin: generate_virtual_channels
             input_buffer #(
-                .BUFFER_SIZE(BUFFER_SIZE),
+                .BUFFER_SIZE(BUFFER_SIZE)
             )
             input_buffer (
                 .data_i(data_i),
