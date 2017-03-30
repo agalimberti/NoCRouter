@@ -68,7 +68,7 @@ module input_buffer #(
         unique case(ss)
             IDLE:
             begin
-                if(data_i.flit_label == HEAD)   //and the buffer is currently empty?
+                if(data_i.flit_label == HEAD & write_i & is_empty_o)   //and the buffer is currently empty?
                 begin
                     ss_next = VA;
                     out_port_next = out_port_i;
