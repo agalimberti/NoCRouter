@@ -39,6 +39,14 @@ module input_buffer #(
         .is_empty_o(is_empty_o)
     );
 
+    /*
+    Sequential logic:
+    - on the rising edge of the reset input signal, reset the state of the
+      finite state machine, the next hop destination and the downstream virtual
+      channel identifier;
+    - on the rising edge of the clock input signal, update the state,
+      the next hop destination and the downstream virtual channel identifier.
+    */
     always_ff@(posedge clk, rst)
     begin
         if(rst)
@@ -55,6 +63,19 @@ module input_buffer #(
         end
     end
 
+    /*
+    Combinational logic:
+    - in Idle state, when the input flit is an Head one, the write command is
+      asserted and the buffer is empty, then the next hop destination received
+      in input and associated to the flit is stored, and the next state is set
+      to be Virtual Channel Allocation;
+    - in Virtual Channel Allocation state, when the virtual channel for the
+      downstream router is valid, i.e., the corresponding validity signal is
+      asserted, then the virtual channel identifier is stored and the next
+      state is set to be Switch Allocation;
+    - in Switch Allocation state, when the last flit to read is the Tail one
+      and the read command is asserted, then the next state is set to be Idle.
+    */
     always_comb
     begin
         data_o.flit_label = read_flit.flit_label;
