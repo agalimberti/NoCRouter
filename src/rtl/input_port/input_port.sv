@@ -59,6 +59,14 @@ module input_port #(
         .out_port_o(out_port_cmd)
     );
 
+    /*
+    Combinational logic:
+    - if the input flit is valid, assert the write command of the corresponding
+      virtual channel buffer where the flit has to be stored;
+    - assert the read command of the virtual channel buffer selected by the
+      interfaced switch allocator and propagate at the crossbar interface the
+      corresponding flit.
+    */
     always_comb
     begin
         write_cmd = {VC_NUM{0}};
