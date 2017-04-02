@@ -50,36 +50,21 @@ module tb_input_buffer#(
         initialize();
         clear_reset(); 
                
-        @(posedge clk) 
-        begin
-            insert_flit(HEAD);
-            out_port_i  <= NORTH;
-        end
-        
-        @(posedge clk)
-        begin 
-            vc_valid_i  <= 1;
-            vc_new_i    <= 1;
-            
-            insert_flit(BODY);
-        end
-      
-        @(posedge clk)
-        begin 
-            insert_flit(TAIL);
-        end
+        insert_packet(NORTH);
        
-        @(posedge clk)
-        begin
-            write_i <= 0;
-        end
-        
-        repeat(4) @(posedge clk)
+        repeat(5) @(posedge clk)
         begin
             read_flit();
         end
         
-        #50 $finish;
+        insert_packet(WEST);
+        
+        repeat(5) @(posedge clk)
+            begin
+                read_flit();
+            end 
+        
+        #20 $finish;
     end
     
     always #5 clk = ~clk;
@@ -111,6 +96,36 @@ module tb_input_buffer#(
             rst <= 0;
     endtask
     
+    task insert_packet(input port_t p);
+        
+        @(posedge clk) 
+        begin
+            insert_flit(HEAD);
+            out_port_i  <= p;
+            push_flit();
+        end
+            
+        @(posedge clk)
+        begin 
+            vc_valid_i  <= 1;
+            vc_new_i    <= 0;
+            insert_flit(BODY);
+            push_flit();
+        end
+          
+        @(posedge clk)
+        begin
+            insert_flit(BODY);
+            push_flit(); 
+        end
+          
+        @(posedge clk) 
+        begin
+            insert_flit(TAIL);
+            push_flit();
+        end
+    endtask
+    
     task insert_flit(input flit_label_t lab);
         write_flit();
         data_i.flit_label <= lab;
@@ -120,4 +135,8 @@ module tb_input_buffer#(
         data_i.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{flit_queue.size()}};            
     endtask
     
+    task push_flit();
+            flit_queue.push_back(data_i);
+        endtask
+        
 endmodule
