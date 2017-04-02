@@ -6,7 +6,7 @@ module tb_circular_buffer #(
     parameter BUFFER_SIZE=8
 );
 
-    int i;
+    int i,j;
     int num_operation;
     
     logic clk,rst;
@@ -22,11 +22,16 @@ module tb_circular_buffer #(
     wire is_full_o;
     wire is_empty_o;
 
-    initial
-    begin
+    initial begin
         dump_output();
         initialize();
         clear_reset();
+        fork
+        begin
+        	repeat(20)
+        		random_operation();
+        end
+        join      
         #20 $finish;
     end
 
@@ -114,6 +119,13 @@ module tb_circular_buffer #(
         end
     endtask
     
+	task random_operation();
+		j = $random;
+		if(j > 4)
+			write();
+		else
+			read();
+	endtask
 
     task insert_in_queue();
  		flit_written.flit_label <= HEAD;
