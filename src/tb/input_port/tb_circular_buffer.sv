@@ -118,12 +118,38 @@ module tb_circular_buffer #(
         	num_operation = num_operation + 1;
         end
     endtask
+
+    //the read_write combines the two operations above
+    task read_write();
+        begin
+            if(i == 0)
+    		    return;
+    	    else
+                flit_read=flit_queue.pop_front();
+                insert_in_queue();
+                @(posedge clk);
+                write_i <= 1;
+                read_i <= 1;
+                data_i <= flit_written;
+                flit_queue.push_back(flit_written);
+                num_operation = num_operation + 1;
+                @(posedge clk);
+    	        write_i <= 0;
+    	   	    read_i <= 0;
+    	        data_i <= flit_x;
+       	 	    if(check_flits & ~is_empty_o)
+            	    $display("[READ AND WRITE] PASSED");
+        	    else $display("[READ AND WRITE] FAILED");
+        end
+    endtask
     
 	task random_operation();
-		j = $random;
-		if(j > 4)
-			write();
-		else
+		j = $urandom%8;
+		if(j >= 6)
+			read_write();
+		else if (j <= 2)
+            write();
+        else
 			read();
 	endtask
 
