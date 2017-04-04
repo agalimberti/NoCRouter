@@ -1,7 +1,8 @@
 import noc_params::*;
 
 module circular_buffer #(
-    parameter BUFFER_SIZE = 8
+    parameter BUFFER_SIZE = 8,
+    parameter PIPELINE_DEPTH = 5
 )(
     input flit_t data_i,
     input read_i,
@@ -10,7 +11,8 @@ module circular_buffer #(
     input clk,
     output flit_t data_o,
     output logic is_full_o,
-    output logic is_empty_o
+    output logic is_empty_o,
+    output logic on_off_o
 );
 
     localparam [31:0] POINTER_SIZE = $clog2(BUFFER_SIZE);
@@ -24,7 +26,11 @@ module circular_buffer #(
     logic [POINTER_SIZE-1:0] write_ptr_next;
     logic is_full_next;
     logic is_empty_next;
+    logic on_off_next;
 
+    logic [POINTER_SIZE-1:0] ptr_offset;
+    logic [POINTER_SIZE-1:0] ptr_offset_next;
+    
     /*
     Sequential logic:
     - reset on the rising edge of the rst input;
@@ -36,17 +42,21 @@ module circular_buffer #(
     begin
         if (rst)
         begin
-            read_ptr <= 0;
-            write_ptr <= 0;
-            is_full_o <= 0;
-            is_empty_o <= 1;
+            read_ptr    <= 0;
+            write_ptr   <= 0;
+            ptr_offset  <= 0;
+            is_full_o   <= 0;
+            is_empty_o  <= 1;
+            on_off_o    <= 1;  
         end
         else
         begin
-            read_ptr <= read_ptr_next;
-            write_ptr <= write_ptr_next;
-            is_full_o <= is_full_next;
-            is_empty_o <= is_empty_next;
+            read_ptr    <= read_ptr_next;
+            write_ptr   <= write_ptr_next;
+            ptr_offset  <= ptr_offset_next;
+            is_full_o   <= is_full_next;
+            is_empty_o  <= is_empty_next;
+            on_off_o    <= on_off_next;
             if((~read_i & write_i & ~is_full_o) | (read_i & write_i))
                 memory[write_ptr] <= data_i;
         end
@@ -63,6 +73,7 @@ module circular_buffer #(
         * read and write pointers are eventually incremented
     - otherwise, the buffer next status doesn't change
     - additionally, the flit pointed by the read pointer is output
+      and the on/off flag for the flow control is updated
     */
     always_comb
     begin
@@ -94,6 +105,18 @@ module circular_buffer #(
             write_ptr_next = write_ptr;
             is_full_next = is_full_o;
             is_empty_next = is_empty_o;
+        end
+        begin: update_on_off_flag
+            if(write_ptr_next < read_ptr_next)
+                ptr_offset_next = write_ptr_next + BUFFER_SIZE - read_ptr_next;
+            else
+                ptr_offset_next = write_ptr_next - read_ptr_next;
+            unique if(ptr_offset > ptr_offset_next & ptr_offset_next < PIPELINE_DEPTH)
+                on_off_next = 1;
+            else if(ptr_offset < ptr_offset_next & ptr_offset_next > BUFFER_SIZE - PIPELINE_DEPTH)
+                on_off_next = 0;
+            else
+                on_off_next = on_off_o;
         end
     end
 
