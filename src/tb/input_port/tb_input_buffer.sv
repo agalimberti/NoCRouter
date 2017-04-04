@@ -3,7 +3,8 @@
 import noc_params::*;
 
 module tb_input_buffer#(
-    parameter BUFFER_SIZE=8
+    parameter BUFFER_SIZE = 8,
+    parameter PIPELINE_DEPTH = 5
 );
 
     int i;
@@ -13,6 +14,7 @@ module tb_input_buffer#(
     logic write_i;
     logic [VC_SIZE-1:0] vc_new_i;
     logic vc_valid_i;
+    logic on_off_o;
     
     port_t out_port_i;
     port_t out_port_o;
@@ -27,22 +29,24 @@ module tb_input_buffer#(
     wire is_empty_o;
     
     input_buffer #(
-            .BUFFER_SIZE(BUFFER_SIZE)
-            )
-        input_buffer (
-            .data_i(data_i),
-            .read_i(read_i),
-            .write_i(write_i),
-            .vc_new_i(vc_new_i),
-            .vc_valid_i(vc_valid_i),
-            .out_port_i(out_port_i),
-            .rst(rst),
-            .clk(clk),
-            .data_o(data_o),
-            .is_full_o(is_full_o),
-            .is_empty_o(is_empty_o),
-            .out_port_o(out_port_o)
-        );
+        .BUFFER_SIZE(BUFFER_SIZE),
+        .PIPELINE_DEPTH(PIPELINE_DEPTH)
+    )
+    input_buffer (
+        .data_i(data_i),
+        .read_i(read_i),
+        .write_i(write_i),
+        .vc_new_i(vc_new_i),
+        .vc_valid_i(vc_valid_i),
+        .out_port_i(out_port_i),
+        .rst(rst),
+        .clk(clk),
+        .data_o(data_o),
+        .is_full_o(is_full_o),
+        .is_empty_o(is_empty_o),
+        .out_port_o(out_port_o),
+        .on_off_o(on_off_o)
+    );
     
     initial
     begin
