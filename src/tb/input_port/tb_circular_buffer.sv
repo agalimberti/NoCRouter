@@ -105,7 +105,7 @@ module tb_circular_buffer #(
     		return;
     	else
     	begin
-    		insert_in_queue();
+    		create_flit();
         	@(posedge clk);
         	write_i <= 1;
         	read_i <= 0;
@@ -126,7 +126,7 @@ module tb_circular_buffer #(
     		    return;
     	    else
                 flit_read=flit_queue.pop_front();
-                insert_in_queue();
+                create_flit();
                 @(posedge clk);
                 write_i <= 1;
                 read_i <= 1;
@@ -144,7 +144,7 @@ module tb_circular_buffer #(
     endtask
     
 	task random_operation();
-		j = $urandom%8;
+		j = $urandom_range(8,0);
 		if(j >= 6)
 			read_write();
 		else if (j <= 2)
@@ -153,7 +153,7 @@ module tb_circular_buffer #(
 			read();
 	endtask
 
-    task insert_in_queue();
+    task create_flit();
  		flit_written.flit_label <= HEAD;
         flit_written.vc_id <= {VC_SIZE{num_operation}};
         flit_written.data.head_data.x_dest <= {DEST_ADDR_SIZE_X{num_operation}};
@@ -162,11 +162,7 @@ module tb_circular_buffer #(
     endtask
 
     function logic check_flits();
-    	if(flit_read.flit_label == data_o.flit_label &
-    	   flit_read.vc_id == data_o.vc_id &
-    	   flit_read.data.head_data.x_dest == data_o.data.head_data.x_dest &
-    	   flit_read.data.head_data.y_dest == data_o.data.head_data.y_dest &
-    	   flit_read.data.head_data.head_pl == data_o.data.head_data.head_pl)
+    	if(flit_read == data_o)
     	    check_flits = 1;
     	else
     		check_flits = 0;   
