@@ -28,8 +28,8 @@ module circular_buffer #(
     logic is_empty_next;
     logic on_off_next;
 
-    logic [POINTER_SIZE-1:0] ptr_offset;
-    logic [POINTER_SIZE-1:0] ptr_offset_next;
+    logic [POINTER_SIZE:0] num_flits;
+    logic [POINTER_SIZE:0] num_flits_next;
     
     /*
     Sequential logic:
@@ -44,7 +44,7 @@ module circular_buffer #(
         begin
             read_ptr    <= 0;
             write_ptr   <= 0;
-            ptr_offset  <= 0;
+            num_flits   <= 0;
             is_full_o   <= 0;
             is_empty_o  <= 1;
             on_off_o    <= 1;  
@@ -53,7 +53,7 @@ module circular_buffer #(
         begin
             read_ptr    <= read_ptr_next;
             write_ptr   <= write_ptr_next;
-            ptr_offset  <= ptr_offset_next;
+            num_flits   <= num_flits_next;
             is_full_o   <= is_full_next;
             is_empty_o  <= is_empty_next;
             on_off_o    <= on_off_next;
@@ -71,6 +71,7 @@ module circular_buffer #(
       and, accordingly to the requested operation:
         * full and empty flags are eventually updated
         * read and write pointers are eventually incremented
+        * the number of stored flits is updated
     - otherwise, the buffer next status doesn't change
     - additionally, the flit pointed by the read pointer is output
       and the on/off flag for the flow control is updated
@@ -84,6 +85,7 @@ module circular_buffer #(
             write_ptr_next = write_ptr;
             is_full_next = 0;
             update_empty_on_read();
+            num_flits_next = num_flits - 1;
         end
         else if(~read_i & write_i & ~is_full_o)
         begin: write_not_full
@@ -91,6 +93,7 @@ module circular_buffer #(
             write_ptr_next = increase_ptr(write_ptr);
             update_full_on_write();
             is_empty_next = 0;
+            num_flits_next = num_flits + 1;
         end
         else if(read_i & write_i & ~is_empty_o)
         begin: read_write_not_empty
@@ -98,6 +101,7 @@ module circular_buffer #(
             write_ptr_next = increase_ptr(write_ptr);
             is_full_next = is_full_o;
             is_empty_next = is_empty_o;
+            num_flits_next = num_flits;
         end
         else
         begin: do_nothing
@@ -105,15 +109,12 @@ module circular_buffer #(
             write_ptr_next = write_ptr;
             is_full_next = is_full_o;
             is_empty_next = is_empty_o;
+            num_flits_next = num_flits;
         end
         begin: update_on_off_flag
-            if(write_ptr_next < read_ptr_next)
-                ptr_offset_next = write_ptr_next + BUFFER_SIZE - read_ptr_next;
-            else
-                ptr_offset_next = write_ptr_next - read_ptr_next;
-            unique if(ptr_offset > ptr_offset_next & ptr_offset_next < PIPELINE_DEPTH)
+            unique if(num_flits > num_flits_next & num_flits_next < PIPELINE_DEPTH)
                 on_off_next = 1;
-            else if(ptr_offset < ptr_offset_next & ptr_offset_next > BUFFER_SIZE - PIPELINE_DEPTH)
+            else if(num_flits < num_flits_next & num_flits_next > BUFFER_SIZE - PIPELINE_DEPTH)
                 on_off_next = 0;
             else
                 on_off_next = on_off_o;
