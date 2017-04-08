@@ -1,7 +1,8 @@
 import noc_params::*;
 
 module input_buffer #(
-    parameter BUFFER_SIZE = 8
+    parameter BUFFER_SIZE = 8,
+    parameter PIPELINE_DEPTH = 5
 )(
     input flit_t data_i,
     input read_i,
@@ -14,6 +15,7 @@ module input_buffer #(
     output flit_t data_o,
     output logic is_full_o,
     output logic is_empty_o,
+    output logic on_off_o,
     output port_t out_port_o
 );
 
@@ -26,7 +28,8 @@ module input_buffer #(
     port_t out_port_next;
 
     circular_buffer #(
-        .BUFFER_SIZE(BUFFER_SIZE)
+        .BUFFER_SIZE(BUFFER_SIZE),
+        .PIPELINE_DEPTH(PIPELINE_DEPTH)
     )
     circular_buffer (
         .data_i(data_i),
@@ -36,7 +39,8 @@ module input_buffer #(
         .clk(clk),
         .data_o(read_flit),
         .is_full_o(is_full_o),
-        .is_empty_o(is_empty_o)
+        .is_empty_o(is_empty_o),
+        .on_off_o(on_off_o)
     );
 
     /*

@@ -2,6 +2,7 @@ import noc_params::*;
 
 module input_port #(
     parameter BUFFER_SIZE = 8,
+    parameter PIPELINE_DEPTH = 5,
     parameter X_CURRENT = MESH_SIZE_X/2,
     parameter Y_CURRENT = MESH_SIZE_Y/2
 )(
@@ -11,7 +12,8 @@ module input_port #(
     input clk,
     input_port2crossbar.input_port crossbar_if,
     input_port2switch_allocator.input_port sa_if,
-    input_port2vc_allocator.input_port va_if
+    input_port2vc_allocator.input_port va_if,
+    output logic [VC_NUM-1:0] on_off_o
 );
 
     flit_t [VC_NUM-1:0] data;
@@ -28,7 +30,8 @@ module input_port #(
         for(vc=0; vc<VC_NUM; vc++)
         begin: generate_virtual_channels
             input_buffer #(
-                .BUFFER_SIZE(BUFFER_SIZE)
+                .BUFFER_SIZE(BUFFER_SIZE),
+                .PIPELINE_DEPTH(PIPELINE_DEPTH)
             )
             input_buffer (
                 .data_i(data_i),
@@ -42,6 +45,7 @@ module input_port #(
                 .data_o(data[vc]),
                 .is_full_o(is_full[vc]),
                 .is_empty_o(is_empty[vc]),
+                .on_off_o(on_off_o[vc]),
                 .out_port_o(sa_if.out_port[vc])
             );
         end

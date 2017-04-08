@@ -1,7 +1,8 @@
 import noc_params::*;
 
 module circular_buffer #(
-    parameter BUFFER_SIZE = 8
+    parameter BUFFER_SIZE = 8,
+    parameter PIPELINE_DEPTH = 5
 )(
     input flit_t data_i,
     input read_i,
@@ -10,7 +11,8 @@ module circular_buffer #(
     input clk,
     output flit_t data_o,
     output logic is_full_o,
-    output logic is_empty_o
+    output logic is_empty_o,
+    output logic on_off_o
 );
 
     localparam [31:0] POINTER_SIZE = $clog2(BUFFER_SIZE);
@@ -24,7 +26,11 @@ module circular_buffer #(
     logic [POINTER_SIZE-1:0] write_ptr_next;
     logic is_full_next;
     logic is_empty_next;
+    logic on_off_next;
 
+    logic [POINTER_SIZE:0] num_flits;
+    logic [POINTER_SIZE:0] num_flits_next;
+    
     /*
     Sequential logic:
     - reset on the rising edge of the rst input;
@@ -36,17 +42,21 @@ module circular_buffer #(
     begin
         if (rst)
         begin
-            read_ptr <= 0;
-            write_ptr <= 0;
-            is_full_o <= 0;
-            is_empty_o <= 1;
+            read_ptr    <= 0;
+            write_ptr   <= 0;
+            num_flits   <= 0;
+            is_full_o   <= 0;
+            is_empty_o  <= 1;
+            on_off_o    <= 1;  
         end
         else
         begin
-            read_ptr <= read_ptr_next;
-            write_ptr <= write_ptr_next;
-            is_full_o <= is_full_next;
-            is_empty_o <= is_empty_next;
+            read_ptr    <= read_ptr_next;
+            write_ptr   <= write_ptr_next;
+            num_flits   <= num_flits_next;
+            is_full_o   <= is_full_next;
+            is_empty_o  <= is_empty_next;
+            on_off_o    <= on_off_next;
             if((~read_i & write_i & ~is_full_o) | (read_i & write_i))
                 memory[write_ptr] <= data_i;
         end
@@ -61,8 +71,10 @@ module circular_buffer #(
       and, accordingly to the requested operation:
         * full and empty flags are eventually updated
         * read and write pointers are eventually incremented
+        * the number of stored flits is updated
     - otherwise, the buffer next status doesn't change
     - additionally, the flit pointed by the read pointer is output
+      and the on/off flag for the flow control is updated
     */
     always_comb
     begin
@@ -73,6 +85,7 @@ module circular_buffer #(
             write_ptr_next = write_ptr;
             is_full_next = 0;
             update_empty_on_read();
+            num_flits_next = num_flits - 1;
         end
         else if(~read_i & write_i & ~is_full_o)
         begin: write_not_full
@@ -80,6 +93,7 @@ module circular_buffer #(
             write_ptr_next = increase_ptr(write_ptr);
             update_full_on_write();
             is_empty_next = 0;
+            num_flits_next = num_flits + 1;
         end
         else if(read_i & write_i & ~is_empty_o)
         begin: read_write_not_empty
@@ -87,6 +101,7 @@ module circular_buffer #(
             write_ptr_next = increase_ptr(write_ptr);
             is_full_next = is_full_o;
             is_empty_next = is_empty_o;
+            num_flits_next = num_flits;
         end
         else
         begin: do_nothing
@@ -94,6 +109,15 @@ module circular_buffer #(
             write_ptr_next = write_ptr;
             is_full_next = is_full_o;
             is_empty_next = is_empty_o;
+            num_flits_next = num_flits;
+        end
+        begin: update_on_off_flag
+            unique if(num_flits > num_flits_next & num_flits_next < PIPELINE_DEPTH)
+                on_off_next = 1;
+            else if(num_flits < num_flits_next & num_flits_next > BUFFER_SIZE - PIPELINE_DEPTH)
+                on_off_next = 0;
+            else
+                on_off_next = on_off_o;
         end
     end
 
