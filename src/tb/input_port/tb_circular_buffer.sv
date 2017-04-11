@@ -6,32 +6,32 @@ module tb_circular_buffer #(
     parameter BUFFER_SIZE=8
 );
 
-    integer i;
-    integer j = 0;
+    int i,j;
+    int num_operation;
     
     logic clk,rst;
     logic read_i;
     logic write_i;
 
-    flit_t flit_vector[BUFFER_SIZE-1:0];
-    flit_t flit_new;
+    flit_t flit_queue[$];
+    flit_t flit_written;
+    flit_t flit_read;
     flit_t flit_x;
     flit_t data_i;
     flit_t data_o;
     wire is_full_o;
     wire is_empty_o;
 
-    initial
-    begin
+    initial begin
         dump_output();
         initialize();
         clear_reset();
-        write_until_saturate();
-        write_while_full();
-        read_and_write_while_full();
-        refill_vector();
-        read_until_empty();
-        read_while_empty();
+        fork
+        begin
+        	repeat(20)
+        		random_operation();
+        end
+        join      
         #20 $finish;
     end
 
@@ -57,6 +57,7 @@ module tb_circular_buffer #(
         
         for (i = 0; i < BUFFER_SIZE; i = i + 1)
             $dumpvars(0, tb_circular_buffer.circular_buffer.memory[i]);
+        i = 0;
     endtask
 
     task initialize();
@@ -64,156 +65,104 @@ module tb_circular_buffer #(
         rst     = 1;
         read_i  = 0;
         write_i = 0;
-  		fill_vector_and_new();
+        num_operation = 0;
     endtask
 
     task clear_reset();
         repeat(5) @(posedge clk);
             rst <= 0;
     endtask
-
-    task write_until_saturate();
-        for( i = 0; i < BUFFER_SIZE; i = i + 1)
-        begin
-            @(posedge clk);
-            read_i  <= 0;
-            write_i <= is_full_o ? 0 : 1;
-            data_i <= flit_vector[i];
-            if(is_empty_o & i > 1)
-            begin
-                $display("[BUFFER WRITE] Failed");
-                return;
-            end
-        end
-        for( i = 0; i < 2; i = i + 1 )
-        begin
-        	@(posedge clk);
-        	if(is_empty_o)
-        	begin
-        		$display("[BUFFER WRITE] Failed");
-        		return;
-        	end
-       	end
-       	if(is_full_o)
-       		$display("[BUFFER WRITE UNTIL SATURATE] Passed");
-       	else
-       	  	begin
-       		$display("[BUFFER WRITE UNTIL SATURATE] Failed");
-       	    return;
-       	end
-    endtask
     
-    task write_while_full();
-    	@(posedge clk);
-        read_i  <= 0;
-        write_i <= 1;
-        data_i <= flit_x;
-        if(is_full_o & i > 1)
-        	$display("[BUFFER WRITE WHILE FULL] Passed");
-  		else
-  		begin
-    	    $display("[BUFFER WRITE WHILE FULL] Failed");
-    	    return;
-    	end
-   	endtask;
-	
-    task read_and_write_while_full();
-        @(posedge clk);
-        read_i  <= 1;
-        write_i <= 1;
-        data_i <= flit_new;
-        check_flits();
-        j = 1;
-        for( i = 0; i < 2; i = i + 1 )
-            @(posedge clk);
-        if(is_full_o)
-        	$display("[BUFFER READ AND WRITE WHILE FULL] Passed");
-        else
-        begin
-            $display("[BUFFER READ AND WRITE WHILE FULL] Failed");
-            return;
-        end 
-    endtask
-	
-	task read_until_empty();
-        for(i = 0; i < BUFFER_SIZE; i = i + 1) 
-        begin
-            @(posedge clk);
-            read_i  <= is_empty_o ? 0 : 1;
-            write_i <= 0;
-            if(i < BUFFER_SIZE - 1)
-            begin
-            	if(~check_flits())
-            	begin 
-            		$display("[BUFFER READ] Failed");
-            		return;
-            	end
-            end
-           		
-           	j = j + 1;
-        end
-        for( i = 0; i < 2; i = i + 1 )
-        	@(posedge clk);
-        if(is_empty_o)
-        	$display("[BUFFER READ UNTIL EMPTY] Passed");
-        else
-       	begin 
-        	$display("[BUFFER READ UNTIL EMPTY] Failed");
-        	return;
-        end
-    endtask
-
-    task read_while_empty();
-        repeat(2)
-        begin
-            @(posedge clk);
-            read_i  <= 1;
-            write_i <= 0;
-        end
-        for( i = 0; i < 2; i = i + 1 )
-        	@(posedge clk);
-        if(is_empty_o)
-        	$display("[BUFFER READ WHILE EMPTY] Passed");
-        else
-        begin 
-          	$display("[BUFFER READ WHILE EMPTY] Failed");
-          	return;
-       	end
-    endtask
-
-    task fill_vector_and_new();
-    	for( i = 0; i < BUFFER_SIZE; i = i + 1)
+    //the read task first pops out a flit at the front of the flit_queue
+    //then it reads a flit from the buffer and compares the two
+    task read();
+    	if(i == 0)
+    		return;
+    	else
     	begin
-            flit_vector[i].flit_label <= HEAD;
-            flit_vector[i].vc_id <= {VC_SIZE{i}};
-            flit_vector[i].data.head_data.x_dest <= {DEST_ADDR_SIZE_X{i}};
-    	    flit_vector[i].data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{i}}; 
-  	    	flit_vector[i].data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{i}};
-  	    end
-  	    	flit_new.flit_label <= HEAD;
-  	        flit_new.vc_id <= {VC_SIZE{BUFFER_SIZE}};
-  	        flit_new.data.head_data.x_dest <= {DEST_ADDR_SIZE_X{BUFFER_SIZE}};
-  	       	flit_new.data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{BUFFER_SIZE}}; 
-  	      	flit_new.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{BUFFER_SIZE}};
-    endtask;
+    		flit_read=flit_queue.pop_front();
+    		@(posedge clk);
+    		write_i <= 0;
+    	    read_i <= 1;
+    	    data_i <= flit_x;
+    	    i = i - 1;
+    	    num_operation = num_operation + 1;
+    	    @(posedge clk);
+    	    write_i <= 0;
+    	   	read_i <= 0;
+    	    data_i <= flit_x;
+       	 	if(~check_flits)
+            	$display("[READ] FAILED");
+        	else $display("[READ] PASSED");
+        end
+    endtask
     
-    task refill_vector();
-    	for( i = 0; i < BUFFER_SIZE; i = i + 1)
-		begin
-            flit_vector[i].flit_label <= HEAD;
-            flit_vector[i].vc_id <= {VC_SIZE{i + 1}};
-            flit_vector[i].data.head_data.x_dest <= {DEST_ADDR_SIZE_X{i + 1}};
-        	flit_vector[i].data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{i + 1}}; 
-      	   	flit_vector[i].data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{i + 1}};
-      	end
-    endtask 
+
+    //the write task first inserts a flit in the flit_queue
+    //then the same flit is written into the buffer
+    task write();
+    	if(i == BUFFER_SIZE - 1)
+    		return;
+    	else
+    	begin
+    		create_flit();
+        	@(posedge clk);
+        	write_i <= 1;
+        	read_i <= 0;
+        	data_i <= flit_written;
+        	flit_queue.push_back(flit_written);
+        	if(is_empty_o & flit_queue.size() > 2)
+        		$display("[WRITE] FAILED");
+        	else $display("[WRITE] PASSED");
+        	i = i + 1;
+        	num_operation = num_operation + 1;
+        end
+    endtask
+
+    //the read_write combines the two operations above
+    task read_write();
+        begin
+            if(i == 0)
+    		    return;
+    	    else
+                flit_read=flit_queue.pop_front();
+                create_flit();
+                @(posedge clk);
+                write_i <= 1;
+                read_i <= 1;
+                data_i <= flit_written;
+                flit_queue.push_back(flit_written);
+                num_operation = num_operation + 1;
+                @(posedge clk);
+    	        write_i <= 0;
+    	   	    read_i <= 0;
+    	        data_i <= flit_x;
+       	 	    if(check_flits & ~is_empty_o)
+            	    $display("[READ AND WRITE] PASSED");
+        	    else $display("[READ AND WRITE] FAILED");
+        end
+    endtask
+    
+	task random_operation();
+		j = $urandom_range(8,0);
+		if(j >= 6)
+			read_write();
+		else if (j <= 2)
+            write();
+        else
+			read();
+	endtask
+
+    task create_flit();
+ 		flit_written.flit_label <= HEAD;
+        flit_written.vc_id <= {VC_SIZE{num_operation}};
+        flit_written.data.head_data.x_dest <= {DEST_ADDR_SIZE_X{num_operation}};
+    	flit_written.data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{num_operation}}; 
+  	    flit_written.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{num_operation}};
+    endtask
 
     function logic check_flits();
-    	if(flit_vector[j].flit_label == data_o.flit_label &
-    	   flit_vector[j].vc_id == data_o.vc_id &
-    	   flit_vector[j].data.head_data.x_dest == data_o.data.head_data.x_dest &
-    	   flit_vector[j].data.head_data.y_dest == data_o.data.head_data.y_dest &
-    	   flit_vector[j].data.head_data.head_pl == data_o.data.head_data.head_pl)
+    	if(flit_read == data_o)
     	    check_flits = 1;
     	else
     		check_flits = 0;   

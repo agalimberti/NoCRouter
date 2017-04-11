@@ -83,11 +83,7 @@ module tb_crossbar #(
     
     function logic check_flits();
         for( i = 0; i < INPUT_NUM; i = i + 1)
-            if(data_i[i].flit_label == data_o[sel_i[i]].flit_label & 
-                    data_i[i].vc_id == data_o[sel_i[i]].vc_id &
-                    data_i[i].data.head_data.x_dest == data_o[sel_i[i]].data.head_data.x_dest &
-                    data_i[i].data.head_data.y_dest == data_o[sel_i[i]].data.head_data.y_dest &
-                    data_i[i].data.head_data.head_pl == data_o[sel_i[i]].data.head_data.head_pl)
+            if(data_i[i] == data_o[sel_i[i]])
                 check_flits = 1;
             else
                 check_flits = 0;    
