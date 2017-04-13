@@ -12,7 +12,6 @@ module tb_input_port #(
     logic valid_flit_cmd;
     logic rst;
     logic clk;
-    logic read_i, write_i;
     logic [VC_NUM-1:0] on_off_o;
 
     //CROSSBAR MOCK
@@ -55,7 +54,6 @@ module tb_input_port #(
         .ip_if(ip2sa_if.switch_allocator),
         .out_port_o(out_port_o),
         .vc_sel_i(vc_sel_cmd)
-
     );
 
     va_mock va_mock (
@@ -70,6 +68,8 @@ module tb_input_port #(
         initialize();
         clear_reset();     
         //perform some tests
+
+
         #20 $finish;
     end
     
@@ -83,15 +83,8 @@ module tb_input_port #(
     task initialize();
         clk             <= 0;
         rst             = 1;
-        read_i          = 0;
-        write_i         = 0;
-        /* also to be reset
-        data_cmd        = ;
-        valid_flit_cmd  = ;
-        vc_sel_cmd      = ;
-        vc_new_cmd      = ;
-        vc_valid_cmd    = ;
-        */
+        vc_sel_cmd      = 0;
+        valid_flit_cmd  = 0;
     endtask
     
     task clear_reset();
