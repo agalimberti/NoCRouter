@@ -73,11 +73,11 @@ module input_port #(
     */
     always_comb
     begin
-        write_cmd = {VC_NUM{0}};
+        write_cmd = 0;
         if(valid_flit_i)
             write_cmd[data_i.vc_id] = 1;
 
-        read_cmd = {VC_NUM{0}};
+        read_cmd = 0;
         crossbar_if.flit = data[sa_if.vc_sel];
         read_cmd[sa_if.vc_sel] = 1;
     end
