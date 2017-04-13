@@ -114,6 +114,12 @@ module input_buffer #(
                 if(data_o.flit_label == TAIL & read_i)
                     ss_next = IDLE;
             end
+
+            default:
+            begin
+                ss_next = IDLE;
+            end
+
         endcase
     end
 
