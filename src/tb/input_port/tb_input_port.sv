@@ -4,9 +4,14 @@ import noc_params::*;
 
 module tb_input_port #(
     parameter BUFFER_SIZE = 8,
-    parameter PIPELINE_DEPTH = 5
+    parameter PIPELINE_DEPTH = 5,
+    parameter X_CURRENT = MESH_SIZE_X/2,
+    parameter Y_CURRENT = MESH_SIZE_Y/2
 );
 
+    flit_t flit_written;
+    flit_t flit_queue[$];
+    
     //INPUT PORT
     flit_t data_cmd;
     logic valid_flit_cmd;
@@ -68,10 +73,11 @@ module tb_input_port #(
     begin
         dump_output();
         initialize();
-        clear_reset();     
-        //perform some tests
-
-
+        clear_reset();
+        
+        for(int i=0; i<2; i++)
+            insert_packet(i);   
+          
         #20 $finish;
     end
     
@@ -90,9 +96,60 @@ module tb_input_port #(
         valid_sel_cmd   = 0;
     endtask
     
+    task create_flit(input flit_label_t lab);
+            flit_written.flit_label <= lab;
+            flit_written.vc_id      <= 1'b0;
+            if(lab == HEAD)
+                begin
+                    flit_written.data.head_data.x_dest  <= {DEST_ADDR_SIZE_X{flit_queue.size()}};
+                    flit_written.data.head_data.y_dest  <= {DEST_ADDR_SIZE_Y{flit_queue.size()}}; 
+                    flit_written.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{flit_queue.size()}}; 
+                end
+            else
+                    flit_written.data.bt_pl <= {FLIT_DATA_SIZE{flit_queue.size()}};
+    endtask
+    
     task clear_reset();
         repeat(2) @(posedge clk);
             rst <= 0;
+    endtask
+    
+    task write_flit();
+            valid_flit_cmd <= 1;
+            data_cmd       <= flit_written;
+            push_flit();
+    endtask
+        
+    task push_flit();
+        flit_queue.push_back(flit_written);
+        //$display("%d", flit_queue.size());
+    endtask
+        
+    task insert_packet(input int i);
+        $display("%d", i);
+        
+     
+    
+        create_flit(HEAD);
+        @(posedge clk) 
+        begin
+            write_flit();
+        end 
+             
+        repeat($urandom_range(9,1)) 
+        begin
+            create_flit(BODY);
+            @(posedge clk)
+            begin 
+                write_flit();
+            end
+        end
+        
+        create_flit(TAIL);
+        @(posedge clk)
+        begin 
+            write_flit();
+        end 
     endtask
 
 endmodule
