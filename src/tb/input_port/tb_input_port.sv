@@ -20,6 +20,7 @@ module tb_input_port #(
     //SWITCH ALLOCATOR MOCK
     port_t [VC_NUM-1 : 0] out_port_o;
     logic [VC_SIZE-1 : 0] vc_sel_cmd;
+    logic valid_sel_cmd;
 
     //VIRTUAL CHANNEL ALLOCATOR MOCK
     logic [VC_NUM-1:0] [VC_SIZE-1:0] vc_new_cmd;
@@ -53,7 +54,8 @@ module tb_input_port #(
     sa_mock sa_mock (
         .ip_if(ip2sa_if.switch_allocator),
         .out_port_o(out_port_o),
-        .vc_sel_i(vc_sel_cmd)
+        .vc_sel_i(vc_sel_cmd),
+        .valid_sel_i(valid_sel_cmd)
     );
 
     va_mock va_mock (
@@ -85,6 +87,7 @@ module tb_input_port #(
         rst             = 1;
         vc_sel_cmd      = 0;
         valid_flit_cmd  = 0;
+        valid_sel_cmd   = 0;
     endtask
     
     task clear_reset();
@@ -109,12 +112,14 @@ endmodule
 module sa_mock #()(
     input_port2switch_allocator.switch_allocator ip_if,
     output port_t [VC_NUM-1 : 0] out_port_o,
-    input [VC_SIZE-1 : 0] vc_sel_i
+    input [VC_SIZE-1 : 0] vc_sel_i,
+    input valid_sel_i
 );
 
     always_comb
     begin
         ip_if.vc_sel    = vc_sel_i;
+        ip_if.valid_sel = valid_sel_i;
         out_port_o      = ip_if.out_port;
     end
 
