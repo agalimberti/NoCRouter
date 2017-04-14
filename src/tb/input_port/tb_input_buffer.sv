@@ -8,6 +8,7 @@ module tb_input_buffer#(
 );
 
     int i;
+    int num_operation;
     
     logic clk, rst;
     logic read_i;
@@ -49,48 +50,61 @@ module tb_input_buffer#(
     );
     
     initial
+    //the testbench inserts 2 packets in the buffer
+    //during the insertion of each flit of the packet
+    // a random number of reads is perfomed 
     begin
         dump_output();
         initialize();
-        clear_reset(); 
-               
+        clear_reset();    
         insert_packet(NORTH);
         read_packet();
-        
-        //insert_packet(WEST);
-        //read_packet();
-        
+        insert_packet(WEST);
+        read_packet();
         #20 $finish;
     end
     
     always #5 clk = ~clk;
     
     task read_flit();
-        
-        flit_read=flit_queue.pop_front();
-        @(posedge clk)
-            write_i <= 0;
-            read_i  <= 1;
-        @(posedge clk)
+    	//checks if the buffer is empty or not and 
+        //if we are at least at 2 cycles from the first write
+        if(i == 0)
+        	return;
+        else
         begin
-            //$display("%d", $time);
-            read_i  <= 0;
-            write_i <= 0;
-            if(1)
-            begin
-                if(~(flit_read == data_o))
-                    #40 $finish;
-                    //$display("-%d", $time); 
-            end
+        	flit_read=flit_queue.pop_front();
+        	@(posedge clk)
+        	    write_i <= 0;
+            	read_i  <= 1;
+            	i = i - 1;
+            	num_operation = num_operation + 1;
+        		
+               	@(posedge clk);
+        		write_i <= 0;
+        		read_i <= 0;
+        		check_flits();
         end
         
     endtask
     
     task write_flit();
+    	//checks if the buffer is full or not
+    	if(i == BUFFER_SIZE - 1)
+        	return;
+        else
+        begin
+        	read_i  <= 0;
+        	write_i <= 1;
+        	data_i  <= flit_written;
+        	push_flit();
+        	i = i + 1;
+        	num_operation = num_operation + 1;
+        end
+        @(posedge clk)
         read_i  <= 0;
-        write_i <= 1;
-        data_i  <= flit_written;
-        push_flit();
+        write_i <= 0;
+        
     endtask
     
     task dump_output();
@@ -103,6 +117,8 @@ module tb_input_buffer#(
         rst     = 1;
         read_i  = 0;
         write_i = 0;
+        i = 0;
+        num_operation = 0;   
     endtask
     
     task clear_reset();
@@ -113,25 +129,26 @@ module tb_input_buffer#(
     task insert_packet(input port_t p);
         
         create_flit(HEAD);
+        out_port_i <= p;
         @(posedge clk) 
         begin
             write_flit();
-            out_port_i  <= p;
         end
         
-//        repeat($urandom_range(3,0)) 
-//            read_flit();
+        repeat($urandom_range(3,0)) 
+            read_flit();
             
         create_flit(BODY);
         @(posedge clk)
-        begin 
+        begin
+        	vc_valid_i  <= 1;
+            vc_new_i    <= 1'b1; 
             write_flit();
-            vc_valid_i  <= 1;
-            vc_new_i    <= 1'b1;   
+               
         end
         
-//        repeat($urandom_range(3,0)) @(posedge clk)
-//            read_flit();
+        repeat($urandom_range(3,0)) @(posedge clk)
+            read_flit();
             
         create_flit(BODY);
         @(posedge clk)
@@ -140,8 +157,8 @@ module tb_input_buffer#(
             write_flit();
         end
         
-//        repeat($urandom_range(3,0)) @(posedge clk)
-//            read_flit();
+        repeat($urandom_range(3,0)) @(posedge clk)
+            read_flit();
            
         create_flit(TAIL);   
         @(posedge clk) 
@@ -156,20 +173,31 @@ module tb_input_buffer#(
     
     task create_flit(input flit_label_t lab);
         flit_written.flit_label <= lab;
-        flit_written.vc_id      <= 1'b1;
+        flit_written.vc_id <= 1'b1;
         if(lab == HEAD)
             begin
-                flit_written.data.head_data.x_dest  <= {DEST_ADDR_SIZE_X{flit_queue.size()}};
-                flit_written.data.head_data.y_dest  <= {DEST_ADDR_SIZE_Y{flit_queue.size()}}; 
-                flit_written.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{flit_queue.size()}}; 
+                flit_written.data.head_data.x_dest  <= {DEST_ADDR_SIZE_X{num_operation}};
+                flit_written.data.head_data.y_dest  <= {DEST_ADDR_SIZE_Y{num_operation}}; 
+                flit_written.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{num_operation}}; 
             end
         else
-                flit_written.data.bt_pl <= {FLIT_DATA_SIZE{flit_queue.size()}};
+        	flit_written.data.bt_pl <= {FLIT_DATA_SIZE{num_operation}};
     endtask
     
+    task check_flits();
+    	if(vc_new_i)
+    		flit_read.vc_id = vc_new_i;
+    	else flit_read.vc_id = 1'b0;
+		if(~(flit_read == data_o))
+		begin
+    		$display("[READ] FAILED");
+    		#40 $finish;
+    	end	
+    	else 
+    		$display("[READ] PASSED");	
+    endtask
     task push_flit();
             flit_queue.push_back(flit_written);
-            $display("%d", flit_queue.size());
     endtask
     
     task read_packet();
@@ -178,5 +206,6 @@ module tb_input_buffer#(
             read_flit();
         end
     endtask
+    
     
 endmodule
