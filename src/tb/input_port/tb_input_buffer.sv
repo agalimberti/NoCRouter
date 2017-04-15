@@ -173,7 +173,7 @@ module tb_input_buffer#(
     
     task create_flit(input flit_label_t lab);
         flit_written.flit_label <= lab;
-        flit_written.vc_id <= 1'b1;
+        flit_written.vc_id <= 1'b0;
         if(lab == HEAD)
             begin
                 flit_written.data.head_data.x_dest  <= {DEST_ADDR_SIZE_X{num_operation}};
@@ -181,13 +181,15 @@ module tb_input_buffer#(
                 flit_written.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{num_operation}}; 
             end
         else
-        	flit_written.data.bt_pl <= {FLIT_DATA_SIZE{num_operation}};
+        	begin
+        		flit_written.vc_id <= 1'b1;
+        		flit_written.data.bt_pl <= {FLIT_DATA_SIZE{num_operation}};
+        	end
     endtask
     
     task check_flits();
-    	if(vc_new_i)
+    	if(vc_valid_i)
     		flit_read.vc_id = vc_new_i;
-    	else flit_read.vc_id = 1'b0;
 		if(~(flit_read == data_o))
 		begin
     		$display("[READ] FAILED");
