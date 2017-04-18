@@ -3,7 +3,8 @@
 import noc_params::*;
 
 module tb_circular_buffer #(
-    parameter BUFFER_SIZE=8
+    parameter BUFFER_SIZE = 8,
+    parameter PIPELINE_DEPTH = 5
 );
 
     int i,j;
@@ -12,6 +13,7 @@ module tb_circular_buffer #(
     logic clk,rst;
     logic read_i;
     logic write_i;
+    logic on_off_o;
 
     flit_t flit_queue[$];
     flit_t flit_written;
@@ -38,8 +40,9 @@ module tb_circular_buffer #(
     always #5 clk = ~clk;
 
     circular_buffer #(
-        .BUFFER_SIZE(BUFFER_SIZE)
-        )
+        .BUFFER_SIZE(BUFFER_SIZE),
+        .PIPELINE_DEPTH(PIPELINE_DEPTH)
+    )
     circular_buffer (
         .data_i(data_i),
         .read_i(read_i),
@@ -48,7 +51,8 @@ module tb_circular_buffer #(
         .clk(clk),
         .data_o(data_o),
         .is_full_o(is_full_o),
-        .is_empty_o(is_empty_o)
+        .is_empty_o(is_empty_o),
+        .on_off_o(on_off_o)
     );
 
     task dump_output();

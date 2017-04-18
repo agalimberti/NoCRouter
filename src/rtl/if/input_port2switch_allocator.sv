@@ -2,7 +2,7 @@ import noc_params::*;
 
 interface input_port2switch_allocator;
 
-    port_t out_port;
+    port_t [VC_NUM-1 : 0] out_port;
     logic [VC_SIZE-1 : 0] vc_sel;
 
     modport input_port (
