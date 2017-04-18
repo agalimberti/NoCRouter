@@ -28,8 +28,8 @@ module tb_circular_buffer #(
         clear_reset();
         fork
         begin
-        	repeat(20)
-        		random_operation();
+            repeat(20)
+                random_operation();
         end
         join      
         #20 $finish;
@@ -73,58 +73,66 @@ module tb_circular_buffer #(
             rst <= 0;
     endtask
     
-    //the read task first pops out a flit at the front of the flit_queue
-    //then it reads a flit from the buffer and compares the two
+    /*
+    the read task first pops out a flit at the front of the flit queue
+    then it reads a flit from the buffer and compares the two
+    */
     task read();
-    	if(i == 0)
-    		return;
-    	else
-    	begin
-    		flit_read=flit_queue.pop_front();
-    		@(posedge clk);
-    		write_i <= 0;
-    	    read_i <= 1;
-    	    data_i <= flit_x;
-    	    i = i - 1;
-    	    num_operation = num_operation + 1;
-    	    @(posedge clk);
-    	    write_i <= 0;
-    	   	read_i <= 0;
-    	    data_i <= flit_x;
-       	 	if(~check_flits)
-            	$display("[READ] FAILED");
-        	else $display("[READ] PASSED");
+        if(i == 0)
+            return;
+        else
+        begin
+            flit_read=flit_queue.pop_front();
+            @(posedge clk);
+            write_i <= 0;
+            read_i <= 1;
+            data_i <= flit_x;
+            i = i - 1;
+            num_operation = num_operation + 1;
+            @(posedge clk);
+            write_i <= 0;
+            read_i <= 0;
+            data_i <= flit_x;
+                if(~check_flits)
+                $display("[READ] FAILED");
+            else
+                $display("[READ] PASSED");
         end
     endtask
-    
 
-    //the write task first inserts a flit in the flit_queue
-    //then the same flit is written into the buffer
+    /*
+    the write task first inserts a flit in the flit queue
+    then the same flit is written into the buffer
+    */
     task write();
-    	if(i == BUFFER_SIZE - 1)
-    		return;
-    	else
-    	begin
-    		create_flit();
-        	@(posedge clk);
-        	write_i <= 1;
-        	read_i <= 0;
-        	data_i <= flit_written;
-        	flit_queue.push_back(flit_written);
-        	if(is_empty_o & flit_queue.size() > 2)
-        		$display("[WRITE] FAILED");
-        	else $display("[WRITE] PASSED");
-        	i = i + 1;
-        	num_operation = num_operation + 1;
+        if(i == BUFFER_SIZE - 1)
+            return;
+        else
+        begin
+            create_flit();
+            @(posedge clk);
+            write_i <= 1;
+            read_i <= 0;
+            data_i <= flit_written;
+            flit_queue.push_back(flit_written);
+            if(is_empty_o & flit_queue.size() > 2)
+                $display("[WRITE] FAILED");
+            else
+                $display("[WRITE] PASSED");
+            i = i + 1;
+            num_operation = num_operation + 1;
         end
     endtask
 
-    //the read_write combines the two operations above
+    /*
+    The read write combines the two operations above
+    */
     task read_write();
         begin
             if(i == 0)
-    		    return;
-    	    else
+                return;
+            else
+            begin
                 flit_read=flit_queue.pop_front();
                 create_flit();
                 @(posedge clk);
@@ -134,38 +142,40 @@ module tb_circular_buffer #(
                 flit_queue.push_back(flit_written);
                 num_operation = num_operation + 1;
                 @(posedge clk);
-    	        write_i <= 0;
-    	   	    read_i <= 0;
-    	        data_i <= flit_x;
-       	 	    if(check_flits & ~is_empty_o)
-            	    $display("[READ AND WRITE] PASSED");
-        	    else $display("[READ AND WRITE] FAILED");
+                write_i <= 0;
+                read_i <= 0;
+                data_i <= flit_x;
+                if(check_flits & ~is_empty_o)
+                    $display("[READ AND WRITE] PASSED");
+                else
+                    $display("[READ AND WRITE] FAILED");
+            end
         end
     endtask
     
-	task random_operation();
-		j = $urandom_range(8,0);
-		if(j >= 6)
-			read_write();
-		else if (j <= 2)
+    task random_operation();
+        j = $urandom_range(8,0);
+        if(j >= 6)
+            read_write();
+        else if (j <= 2)
             write();
         else
-			read();
-	endtask
+            read();
+    endtask
 
     task create_flit();
- 		flit_written.flit_label <= HEAD;
+        flit_written.flit_label <= HEAD;
         flit_written.vc_id <= {VC_SIZE{num_operation}};
         flit_written.data.head_data.x_dest <= {DEST_ADDR_SIZE_X{num_operation}};
-    	flit_written.data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{num_operation}}; 
-  	    flit_written.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{num_operation}};
+        flit_written.data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{num_operation}}; 
+        flit_written.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{num_operation}};
     endtask
 
     function logic check_flits();
-    	if(flit_read == data_o)
-    	    check_flits = 1;
-    	else
-    		check_flits = 0;   
+        if(flit_read == data_o)
+            check_flits = 1;
+        else
+            check_flits = 0;   
     endfunction 
     
 endmodule
