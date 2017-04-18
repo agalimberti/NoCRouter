@@ -21,6 +21,7 @@ module tb_input_buffer#(
     port_t out_port_o;
     
     flit_t flit_queue[$];
+    flit_t flit_queue_1[$];
     flit_t flit_written;
     flit_t flit_read;
     flit_t data_i;
@@ -57,9 +58,9 @@ module tb_input_buffer#(
         dump_output();
         initialize();
         clear_reset();    
-        insert_packet(NORTH);
+        insert_packet(NORTH, 0, 1);
         read_packet();
-        insert_packet(WEST);
+        insert_packet(WEST, 1, 0);
         read_packet();
         #20 $finish;
     end
@@ -85,10 +86,9 @@ module tb_input_buffer#(
         		read_i <= 0;
         		check_flits();
         end
-        
     endtask
     
-    task write_flit();
+    task write_flit(input logic [VC_SIZE-1:0] next_vc);
     	//checks if the buffer is full or not
     	if(i == BUFFER_SIZE - 1)
         	return;
@@ -97,14 +97,13 @@ module tb_input_buffer#(
         	read_i  <= 0;
         	write_i <= 1;
         	data_i  <= flit_written;
-        	push_flit();
+        	push_flit(next_vc);
         	i = i + 1;
         	num_operation = num_operation + 1;
         end
         @(posedge clk)
         read_i  <= 0;
         write_i <= 0;
-        
     endtask
     
     task dump_output();
@@ -126,54 +125,40 @@ module tb_input_buffer#(
             rst <= 0;
     endtask
     
-    task insert_packet(input port_t p);
-        
-        create_flit(HEAD);
+    task insert_packet(input port_t p, input logic [VC_SIZE-1:0] curr_vc, input logic [VC_SIZE-1:0] next_vc);
+        create_flit(HEAD, curr_vc);
         out_port_i <= p;
         @(posedge clk) 
         begin
-            write_flit();
+            write_flit(next_vc);
         end
-        
-        repeat($urandom_range(3,0)) 
-            read_flit();
-            
-        create_flit(BODY);
+        create_flit(BODY, curr_vc);
         @(posedge clk)
         begin
         	vc_valid_i  <= 1;
-            vc_new_i    <= 1'b1; 
-            write_flit();
-               
+            vc_new_i    <= next_vc; 
+            write_flit(next_vc);
         end
-        
-        repeat($urandom_range(3,0)) @(posedge clk)
+        repeat(2) @(posedge clk)
             read_flit();
-            
-        create_flit(BODY);
+        create_flit(BODY, curr_vc);
         @(posedge clk)
         begin
             vc_valid_i  <= 0;
-            write_flit();
-        end
-        
-        repeat($urandom_range(3,0)) @(posedge clk)
-            read_flit();
-           
-        create_flit(TAIL);   
+            write_flit(next_vc);
+        end   
+        create_flit(TAIL, curr_vc);   
         @(posedge clk) 
         begin
-            write_flit();
+            write_flit(next_vc);
         end
-        
         @(posedge clk) 
             write_i <= 0;
-             
     endtask
     
-    task create_flit(input flit_label_t lab);
+    task create_flit(input flit_label_t lab, input logic [VC_SIZE-1:0] curr_vc);
         flit_written.flit_label <= lab;
-        flit_written.vc_id <= 1'b0;
+        flit_written.vc_id <= curr_vc;//old vc
         if(lab == HEAD)
             begin
                 flit_written.data.head_data.x_dest  <= {DEST_ADDR_SIZE_X{num_operation}};
@@ -182,24 +167,24 @@ module tb_input_buffer#(
             end
         else
         	begin
-        		flit_written.vc_id <= 1'b1;
+        		//flit_written.vc_id <= 1'b1;
         		flit_written.data.bt_pl <= {FLIT_DATA_SIZE{num_operation}};
         	end
     endtask
     
     task check_flits();
-    	if(vc_valid_i)
-    		flit_read.vc_id = vc_new_i;
 		if(~(flit_read == data_o))
 		begin
     		$display("[READ] FAILED");
-    		#40 $finish;
+    		//#40 $finish;
     	end	
     	else 
     		$display("[READ] PASSED");	
     endtask
-    task push_flit();
-            flit_queue.push_back(flit_written);
+    
+    task push_flit(input logic [VC_SIZE-1:0] vc);
+    	flit_written.vc_id = vc;
+        flit_queue.push_back(flit_written);
     endtask
     
     task read_packet();
