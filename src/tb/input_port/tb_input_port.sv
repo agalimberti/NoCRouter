@@ -39,6 +39,7 @@ module tb_input_port #(
     input_port2switch_allocator ip2sa_if();
     input_port2vc_allocator ip2va_if();
 
+    //DUT INSTANTIATION
     input_port #(
         .BUFFER_SIZE(BUFFER_SIZE),
         .PIPELINE_DEPTH(PIPELINE_DEPTH)
@@ -54,6 +55,7 @@ module tb_input_port #(
         .on_off_o(on_off_o)
     );
 
+    //MOCK MODULES INSTANTIATION
     xbar_mock xbar_mock (
         .ip_if(ip2xbar_if.crossbar),
         .flit_o(flit_o)
@@ -97,9 +99,10 @@ module tb_input_port #(
     task initialize();
         clk             <= 0;
         rst             = 1;
-        vc_sel_cmd      = 0;
         valid_flit_cmd  = 0;
         valid_sel_cmd   = 0;
+        vc_sel_cmd      = 0;
+        vc_valid_cmd    = 0;
     endtask
     
     task create_flit(input flit_label_t lab);
@@ -121,10 +124,12 @@ module tb_input_port #(
     endtask
     
     task write_flit();
-            valid_flit_cmd <= 1;
-            data_cmd       <= flit_written;
             num_op++;
             push_flit();
+            begin
+                valid_flit_cmd <= 1;
+                data_cmd       <= flit_written;
+            end
     endtask
         
     task push_flit();
@@ -134,8 +139,6 @@ module tb_input_port #(
         
     task insert_packet(input int i);
         $display("%d", i);
-        
-     
     
         create_flit(HEAD);
         @(posedge clk) 
@@ -143,7 +146,7 @@ module tb_input_port #(
             write_flit();
         end 
              
-        repeat($urandom_range(9,1)) 
+        repeat(2) 
         begin
             create_flit(BODY);
             @(posedge clk)
