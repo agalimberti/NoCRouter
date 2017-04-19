@@ -9,8 +9,10 @@ module tb_input_port #(
     parameter Y_CURRENT = MESH_SIZE_Y/2
 );
 
+    //TESTBENCH 
     flit_t flit_written;
     flit_t flit_queue[$];
+    flit_t flit_read;
     int num_op, i;
     
     //INPUT PORT
@@ -76,8 +78,11 @@ module tb_input_port #(
         initialize();
         clear_reset();
         
-        for(int i=0; i<2; i++)
-            insert_packet(i);   
+        for(i=0; i<1; i++)
+        begin
+            insert_packet(i);  
+            read_packet();
+        end
           
         #20 $finish;
     end
@@ -153,8 +158,43 @@ module tb_input_port #(
             write_flit();
         end 
     endtask
-
+    
+    task read_packet();
+        repeat(4)
+        begin
+            read_flit();
+        end
+    endtask
+    
+    task read_flit();
         num_op++;
+        begin
+            flit_read = flit_queue.pop_front();
+            @(posedge clk)
+            begin
+                valid_sel_cmd   <= 1;
+                vc_sel_cmd      <= 0;            
+            end
+            @(negedge clk)
+                check_flits();
+        end
+    endtask 
+
+    /*
+    Checks the correspondance between the flit extracted 
+    from the queue and the one in data_o.
+    If the check goes wrong an error message is displayed
+    and the testbench ends.
+    */
+    task check_flits();
+        if(~(flit_read === flit_o))
+        begin
+            $display("[READ] FAILED %d", $time);
+            #40 $finish;
+        end
+        else
+            $display("[READ] PASSED %d", $time);
+    endtask
 endmodule
 
 module xbar_mock #()(
