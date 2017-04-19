@@ -13,7 +13,6 @@ module tb_circular_buffer #(
     logic clk,rst;
     logic read_i;
     logic write_i;
-    logic on_off_o;
 
     flit_t flit_queue[$];
     flit_t flit_written;
@@ -21,8 +20,10 @@ module tb_circular_buffer #(
     flit_t flit_x;
     flit_t data_i;
     flit_t data_o;
+
     wire is_full_o;
     wire is_empty_o;
+    wire on_off_o;
 
     initial begin
         dump_output();

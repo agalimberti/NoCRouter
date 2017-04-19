@@ -15,7 +15,6 @@ module tb_input_buffer #(
     logic write_i;
     logic [VC_SIZE-1:0] vc_new_i;
     logic vc_valid_i;
-    logic on_off_o;
 
     port_t out_port_i;
     port_t out_port_o;
@@ -28,6 +27,7 @@ module tb_input_buffer #(
 
     wire is_full_o;
     wire is_empty_o;
+    wire on_off_o;
 
     input_buffer #(
         .BUFFER_SIZE(BUFFER_SIZE),
