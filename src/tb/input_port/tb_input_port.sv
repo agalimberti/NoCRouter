@@ -11,6 +11,7 @@ module tb_input_port #(
 
     flit_t flit_written;
     flit_t flit_queue[$];
+    int num_op, i;
     
     //INPUT PORT
     flit_t data_cmd;
@@ -101,9 +102,9 @@ module tb_input_port #(
             flit_written.vc_id      <= 1'b0;
             if(lab == HEAD)
                 begin
-                    flit_written.data.head_data.x_dest  <= {DEST_ADDR_SIZE_X{flit_queue.size()}};
-                    flit_written.data.head_data.y_dest  <= {DEST_ADDR_SIZE_Y{flit_queue.size()}}; 
-                    flit_written.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{flit_queue.size()}}; 
+                    flit_written.data.head_data.x_dest  <= {DEST_ADDR_SIZE_X{num_op}};
+                    flit_written.data.head_data.y_dest  <= {DEST_ADDR_SIZE_Y{num_op}}; 
+                    flit_written.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{num_op}}; 
                 end
             else
                     flit_written.data.bt_pl <= {FLIT_DATA_SIZE{flit_queue.size()}};
@@ -117,6 +118,7 @@ module tb_input_port #(
     task write_flit();
             valid_flit_cmd <= 1;
             data_cmd       <= flit_written;
+            num_op++;
             push_flit();
     endtask
         
@@ -152,6 +154,7 @@ module tb_input_port #(
         end 
     endtask
 
+        num_op++;
 endmodule
 
 module xbar_mock #()(
