@@ -94,11 +94,8 @@ module tb_circular_buffer #(
             data_i <= flit_x;
             i = i - 1;
             num_operation = num_operation + 1;
-            @(posedge clk);
-            write_i <= 0;
-            read_i <= 0;
-            data_i <= flit_x;
-                if(~check_flits)
+            @(negedge clk);
+            if(~check_flits)
                 $display("[READ] FAILED");
             else
                 $display("[READ] PASSED");
@@ -146,10 +143,7 @@ module tb_circular_buffer #(
                 data_i <= flit_written;
                 flit_queue.push_back(flit_written);
                 num_operation = num_operation + 1;
-                @(posedge clk);
-                write_i <= 0;
-                read_i <= 0;
-                data_i <= flit_x;
+                @(negedge clk);
                 if(check_flits & ~is_empty_o)
                     $display("[READ AND WRITE] PASSED");
                 else
