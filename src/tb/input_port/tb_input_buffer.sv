@@ -83,9 +83,7 @@ module tb_input_buffer #(
                 read_i  <= 1;
                 i = i - 1;
                 num_operation = num_operation + 1;
-            @(posedge clk);
-                write_i <= 0;
-                read_i <= 0;
+            @(negedge clk)
                 check_flits();
         end
     endtask
