@@ -23,6 +23,8 @@ module input_buffer #(
 
     logic [VC_SIZE-1:0] downstream_vc, downstream_vc_next;
 
+    logic read_cmd;
+
     flit_t read_flit;
 
     port_t out_port_next;
@@ -33,7 +35,7 @@ module input_buffer #(
     )
     circular_buffer (
         .data_i(data_i),
-        .read_i(read_i),
+        .read_i(read_cmd),
         .write_i(write_i),
         .rst(rst),
         .clk(clk),
@@ -89,6 +91,8 @@ module input_buffer #(
         ss_next = ss;
         out_port_next = out_port_o;
         downstream_vc_next = downstream_vc;
+
+        read_cmd = read_i & (ss == SA);
         
         unique case(ss)
             IDLE:
