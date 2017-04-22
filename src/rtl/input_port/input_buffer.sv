@@ -51,7 +51,7 @@ module input_buffer #(
     - on the rising edge of the clock input signal, update the state,
       the next hop destination and the downstream virtual channel identifier.
     */
-    always_ff@(posedge clk, rst)
+    always_ff @(posedge clk, posedge rst)
     begin
         if(rst)
         begin
