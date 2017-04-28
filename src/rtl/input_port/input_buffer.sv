@@ -23,6 +23,9 @@ module input_buffer #(
 
     logic [VC_SIZE-1:0] downstream_vc, downstream_vc_next;
 
+    logic read_cmd, write_cmd;
+    logic end_packet, end_packet_next;
+
     flit_t read_flit;
 
     port_t out_port_next;
@@ -33,8 +36,8 @@ module input_buffer #(
     )
     circular_buffer (
         .data_i(data_i),
-        .read_i(read_i),
-        .write_i(write_i),
+        .read_i(read_cmd),
+        .write_i(write_cmd),
         .rst(rst),
         .clk(clk),
         .data_o(read_flit),
@@ -51,19 +54,21 @@ module input_buffer #(
     - on the rising edge of the clock input signal, update the state,
       the next hop destination and the downstream virtual channel identifier.
     */
-    always_ff@(posedge clk, rst)
+    always_ff @(posedge clk, posedge rst)
     begin
         if(rst)
         begin
             ss              <= IDLE;
             out_port_o      <= LOCAL;
             downstream_vc   <= 0;
+            end_packet      <= 0;
         end
         else
         begin
             ss              <= ss_next;
             out_port_o      <= out_port_next;
             downstream_vc   <= downstream_vc_next;
+            end_packet      <= end_packet_next;
         end
     end
 
@@ -89,7 +94,12 @@ module input_buffer #(
         ss_next = ss;
         out_port_next = out_port_o;
         downstream_vc_next = downstream_vc;
-        
+
+        read_cmd = 0;
+        write_cmd = 0;
+
+        end_packet_next = end_packet;
+
         unique case(ss)
             IDLE:
             begin
@@ -97,6 +107,7 @@ module input_buffer #(
                 begin
                     ss_next = VA;
                     out_port_next = out_port_i;
+                    write_cmd = 1;
                 end
             end
 
@@ -107,13 +118,27 @@ module input_buffer #(
                     ss_next = SA;
                     downstream_vc_next = vc_new_i;
                 end
+                if(write_i & (data_i.flit_label == BODY | data_i.flit_label == TAIL) & ~end_packet)
+                    write_cmd = 1;
+                if(write_i & data_i.flit_label == TAIL)
+                    end_packet_next = 1;
             end
 
             SA:
             begin
-                if(data_o.flit_label == TAIL & read_i)
+                if(read_i & data_o.flit_label == TAIL)
                     ss_next = IDLE;
+                if(write_i & (data_i.flit_label == BODY | data_i.flit_label == TAIL) & ~end_packet)
+                    write_cmd = 1;
+                if(read_i)
+                    read_cmd = 1;
             end
+
+            default:
+            begin
+                ss_next = IDLE;
+            end
+
         endcase
     end
 
