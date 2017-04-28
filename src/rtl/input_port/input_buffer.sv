@@ -16,7 +16,9 @@ module input_buffer #(
     output logic is_full_o,
     output logic is_empty_o,
     output logic on_off_o,
-    output port_t out_port_o
+    output port_t out_port_o,
+    output logic vc_request_o,
+    output logic vc_allocatable_o
 );
 
     enum logic [1:0] {IDLE, VA, SA} ss, ss_next;
@@ -25,6 +27,7 @@ module input_buffer #(
 
     logic read_cmd, write_cmd;
     logic end_packet, end_packet_next;
+    logic vc_allocatable_next;
 
     flit_t read_flit;
 
@@ -58,17 +61,19 @@ module input_buffer #(
     begin
         if(rst)
         begin
-            ss              <= IDLE;
-            out_port_o      <= LOCAL;
-            downstream_vc   <= 0;
-            end_packet      <= 0;
+            ss                  <= IDLE;
+            out_port_o          <= LOCAL;
+            downstream_vc       <= 0;
+            end_packet          <= 0;
+            vc_allocatable_o    <= 1;
         end
         else
         begin
-            ss              <= ss_next;
-            out_port_o      <= out_port_next;
-            downstream_vc   <= downstream_vc_next;
-            end_packet      <= end_packet_next;
+            ss                  <= ss_next;
+            out_port_o          <= out_port_next;
+            downstream_vc       <= downstream_vc_next;
+            end_packet          <= end_packet_next;
+            vc_allocatable_o    <= vc_allocatable_next;
         end
     end
 
@@ -100,6 +105,9 @@ module input_buffer #(
 
         end_packet_next = end_packet;
 
+        vc_request_o = 0;
+        vc_allocatable_next = 0;
+        
         unique case(ss)
             IDLE:
             begin
@@ -113,6 +121,7 @@ module input_buffer #(
 
             VA:
             begin
+                vc_request_o = 1;
                 if(vc_valid_i)
                 begin
                     ss_next = SA;
@@ -127,7 +136,10 @@ module input_buffer #(
             SA:
             begin
                 if(read_i & data_o.flit_label == TAIL)
+                begin
                     ss_next = IDLE;
+                    vc_allocatable_next = 1;
+                end
                 if(write_i & (data_i.flit_label == BODY | data_i.flit_label == TAIL) & ~end_packet)
                     write_cmd = 1;
                 if(read_i)
