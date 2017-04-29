@@ -36,7 +36,7 @@ support multiple input ports per VC Allocator
 
     logic [VC_TOTAL-1:0] available_vc, available_vc_next; //resources availability vector
 
-    logic [VC_SIZE-1:0] vc_new_next [VC_TOTAL-1:0]; //don't change to packed, otherwise it breaks
+    //don't change vc_new_o to packed, otherwise it breaks
 
     separable_input_first_allocator #(
         .AGENTS_NUM(VC_TOTAL),
@@ -57,19 +57,9 @@ support multiple input ports per VC Allocator
     always_ff@(posedge clk, posedge rst)
     begin
         if(rst)
-        begin
-            for(int vc = 0; vc < VC_TOTAL; vc = vc + 1)
-            begin
-                vc_new_o[vc]    <= 0;
-            end
             available_vc        <= {VC_TOTAL{1'b1}};
-
-        end
         else
-        begin
-            vc_new_o            <= vc_new_next;
             available_vc        <= available_vc_next;
-        end
     end
 
     /*
@@ -91,9 +81,10 @@ support multiple input ports per VC Allocator
     always_comb
     begin
         available_vc_next = available_vc;
-        vc_new_next = vc_new_o;
         vc_valid_o = {VC_TOTAL{1'b0}};
         requests_cmd = {VC_TOTAL*VC_TOTAL{1'b0}};
+        for(int up_vc = 0; up_vc < VC_TOTAL; up_vc = up_vc + 1)
+            vc_new_o[up_vc] = {VC_SIZE{1'bx}};
 
         for(int up_vc = 0; up_vc < VC_TOTAL; up_vc = up_vc + 1)
         begin
@@ -112,7 +103,7 @@ support multiple input ports per VC Allocator
             begin
                 if(grants[up_vc][down_vc])
                 begin
-                    vc_new_next[up_vc] = (VC_SIZE)'(down_vc % VC_NUM);
+                    vc_new_o[up_vc] = (VC_SIZE)'(down_vc % VC_NUM);
                     vc_valid_o[up_vc] = 1'b1;
                     available_vc_next[down_vc] = 1'b0;
                 end
