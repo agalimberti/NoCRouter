@@ -10,14 +10,14 @@ module input_port #(
     input valid_flit_i,
     input rst,
     input clk,
-    input logic [VC_SIZE-1:0] vc_sel,
-    input logic [VC_SIZE-1:0] vc_new [VC_NUM-1:0],
-    input logic [VC_NUM-1:0] vc_valid,
+    input [VC_SIZE-1:0] vc_sel_i,
+    input [VC_SIZE-1:0] vc_new_i [VC_NUM-1:0],
+    input [VC_NUM-1:0] vc_valid_i,
     output flit_t flit_o,
     output logic [VC_NUM-1:0] on_off_o,
     output logic [VC_NUM-1:0] vc_allocatable_o,
     output logic [VC_NUM-1:0] vc_request_o,
-    output port_t [VC_NUM-1:0] out_port
+    output port_t [VC_NUM-1:0] out_port_o
 );
 
     flit_t [VC_NUM-1:0] data;
@@ -41,8 +41,8 @@ module input_port #(
                 .data_i(data_i),
                 .read_i(read_cmd[vc]),
                 .write_i(write_cmd[vc]),
-                .vc_new_i(vc_new[vc]),
-                .vc_valid_i(vc_valid[vc]),
+                .vc_new_i(vc_new_i[vc]),
+                .vc_valid_i(vc_valid_i[vc]),
                 .out_port_i(out_port_cmd),
                 .rst(rst),
                 .clk(clk),
@@ -50,7 +50,7 @@ module input_port #(
                 .is_full_o(is_full[vc]),
                 .is_empty_o(is_empty[vc]),
                 .on_off_o(on_off_o[vc]),
-                .out_port_o(out_port[vc]),
+                .out_port_o(out_port_o[vc]),
                 .vc_request_o(vc_request_o[vc]),
                 .vc_allocatable_o(vc_allocatable_o[vc])
             );
@@ -84,8 +84,8 @@ module input_port #(
             write_cmd[data_i.vc_id] = 1;
 
         read_cmd = {VC_NUM{1'b0}};
-        flit_o = data[vc_sel];
-        read_cmd[vc_sel] = 1;
+        flit_o = data[vc_sel_i];
+        read_cmd[vc_sel_i] = 1;
     end
 
 endmodule

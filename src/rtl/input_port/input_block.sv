@@ -38,14 +38,14 @@ module input_block #(
                 .valid_flit_i(valid_flit_i[ip]),
                 .rst(rst),
                 .clk(clk),
-                .vc_sel(sa_if.vc_sel[ip]),
-                .vc_new(va_if.vc_new[ip]),
-                .vc_valid(va_if.vc_valid[ip]),
+                .vc_sel_i(sa_if.vc_sel[ip]),
+                .vc_new_i(va_if.vc_new[ip]),
+                .vc_valid_i(va_if.vc_valid[ip]),
                 .flit_o(crossbar_if.flit[ip]),
                 .on_off_o(on_off_o[ip]),
                 .vc_allocatable_o(vc_allocatable_o[ip]),
                 .vc_request_o(va_if.vc_request[ip]),
-                .out_port(out_port[ip])
+                .out_port_o(out_port[ip])
             );
         end
     endgenerate
