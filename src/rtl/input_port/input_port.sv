@@ -58,7 +58,7 @@ module input_port #(
         .DEST_ADDR_SIZE_Y(DEST_ADDR_SIZE_Y)
     )
     rc_unit (
-        .x_dest_i(data_i.data.head_data.x_dest),    //does it work with non-head flit in input?
+        .x_dest_i(data_i.data.head_data.x_dest),
         .y_dest_i(data_i.data.head_data.y_dest),
         .out_port_o(out_port_cmd)
     );
@@ -73,13 +73,14 @@ module input_port #(
     */
     always_comb
     begin
-        write_cmd = {VC_NUM{0}};
+        write_cmd = 0;
         if(valid_flit_i)
             write_cmd[data_i.vc_id] = 1;
 
-        read_cmd = {VC_NUM{0}};
+        read_cmd = 0;
+        if(sa_if.valid_sel)
+            read_cmd[sa_if.vc_sel] = 1;
         crossbar_if.flit = data[sa_if.vc_sel];
-        read_cmd[sa_if.vc_sel] = 1;
     end
 
 endmodule
