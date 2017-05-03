@@ -13,6 +13,7 @@ module input_port #(
     input [VC_SIZE-1:0] vc_sel_i,
     input [VC_SIZE-1:0] vc_new_i [VC_NUM-1:0],
     input [VC_NUM-1:0] vc_valid_i,
+    input valid_sel_i,
     output flit_t flit_o,
     output logic [VC_NUM-1:0] on_off_o,
     output logic [VC_NUM-1:0] vc_allocatable_o,
@@ -64,7 +65,7 @@ module input_port #(
         .DEST_ADDR_SIZE_Y(DEST_ADDR_SIZE_Y)
     )
     rc_unit (
-        .x_dest_i(data_i.data.head_data.x_dest),    //does it work with non-head flit in input?
+        .x_dest_i(data_i.data.head_data.x_dest),
         .y_dest_i(data_i.data.head_data.y_dest),
         .out_port_o(out_port_cmd)
     );
@@ -84,8 +85,9 @@ module input_port #(
             write_cmd[data_i.vc_id] = 1;
 
         read_cmd = {VC_NUM{1'b0}};
+        if(valid_sel_i)
+            read_cmd[vc_sel_i] = 1;
         flit_o = data[vc_sel_i];
-        read_cmd[vc_sel_i] = 1;
     end
 
 endmodule

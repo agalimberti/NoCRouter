@@ -41,6 +41,7 @@ module input_block #(
                 .vc_sel_i(sa_if.vc_sel[ip]),
                 .vc_new_i(va_if.vc_new[ip]),
                 .vc_valid_i(va_if.vc_valid[ip]),
+                .valid_sel_i(sa_if.valid_sel[ip]),
                 .flit_o(crossbar_if.flit[ip]),
                 .on_off_o(on_off_o[ip]),
                 .vc_allocatable_o(vc_allocatable_o[ip]),
