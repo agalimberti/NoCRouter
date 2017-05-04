@@ -15,7 +15,9 @@ module tb_input_buffer #(
     logic write_i;
     logic [VC_SIZE-1:0] vc_new_i;
     logic vc_valid_i;
-
+    
+    logic req_check, req_check_next;
+    
     port_t out_port_i;
     port_t out_port_o;
 
@@ -72,6 +74,33 @@ module tb_input_buffer #(
 
     always #5 clk = ~clk;
 
+    always_ff @(posedge clk, posedge rst)
+    begin
+        if(rst)
+            req_check       <= 0;
+        else
+        begin
+            req_check       <= req_check_next;
+            
+            if(req_check != vc_request_o)
+            begin
+                $display("ERROR: vc_request_o %d", $time);
+                $finish;   
+            end 
+        end
+            
+    end
+    
+    always_comb
+    begin
+        req_check_next = req_check;
+               
+        if(data_i.flit_label == HEAD & is_empty_o == 1)
+            req_check_next = 1;
+        if(vc_valid_i == 1)
+            req_check_next = 0;
+    end
+    
     task read_flit();
         /*
         checks whether the buffer is empty or not and
