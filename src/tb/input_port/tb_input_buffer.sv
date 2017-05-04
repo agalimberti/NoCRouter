@@ -17,6 +17,7 @@ module tb_input_buffer #(
     logic vc_valid_i;
     
     logic req_check, req_check_next;
+    logic alloc_check, alloc_check_next;
     
     port_t out_port_i;
     port_t out_port_o;
@@ -77,28 +78,44 @@ module tb_input_buffer #(
     always_ff @(posedge clk, posedge rst)
     begin
         if(rst)
-            req_check       <= 0;
+        begin
+            req_check   <= 0;
+            alloc_check <= 0;
+        end
         else
         begin
-            req_check       <= req_check_next;
+            req_check   <= req_check_next;
+            alloc_check <= alloc_check_next;
             
             if(req_check != vc_request_o)
             begin
                 $display("ERROR: vc_request_o %d", $time);
                 $finish;   
-            end 
+            end
+            
+            if(alloc_check != vc_allocatable_o)
+            begin
+                $display("ERROR: vc_allocatable_o %d", $time);
+                $finish;   
+            end  
         end
             
     end
     
     always_comb
     begin
-        req_check_next = req_check;
-               
-        if(data_i.flit_label == HEAD & is_empty_o == 1)
+        req_check_next      = req_check;
+        alloc_check_next    = alloc_check;  
+             
+        if(data_i.flit_label == HEAD & is_empty_o)
             req_check_next = 1;
         if(vc_valid_i == 1)
             req_check_next = 0;
+            
+        if(data_o.flit_label == TAIL)
+            alloc_check_next = 1;
+        if(alloc_check & is_empty_o)
+            alloc_check_next = 0;
     end
     
     task read_flit();
