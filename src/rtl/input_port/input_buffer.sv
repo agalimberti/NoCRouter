@@ -65,7 +65,7 @@ module input_buffer #(
             out_port_o          <= LOCAL;
             downstream_vc       <= 0;
             end_packet          <= 0;
-            vc_allocatable_o    <= 1;
+            vc_allocatable_o    <= 0;
         end
         else
         begin
