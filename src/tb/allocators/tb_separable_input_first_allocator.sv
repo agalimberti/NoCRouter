@@ -121,7 +121,7 @@ module tb_separable_input_first_allocator #(
         begin
             for(int h = 0; h < RESOURCES_NUM; h = h + 1)
             begin
-            if(grants[g][h]!=grants_out_trasp[g][h])
+            if(grants[g][h]!==grants_out_trasp[g][h])
                 begin
                     $display("[ARBITER FAILED] %d,%d  out: %d controllo: %d", g, h, grants[g][h],grants_out_trasp[g][h]);
                     #5 $finish;
@@ -143,7 +143,7 @@ module tb_separable_input_first_allocator #(
     task trasp_matrix_out();
         for(int i = 0; i < RESOURCES_NUM ; i++)
         begin
-            for(int j = 0; i < AGENTS_NUM; i++)
+            for(int j = 0; j < AGENTS_NUM; j++)
             begin
                 grants_out_trasp[j][i] = grants_out[i][j];
             end
