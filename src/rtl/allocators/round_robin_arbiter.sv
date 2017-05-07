@@ -10,8 +10,6 @@ module round_robin_arbiter #(
     localparam [31:0] AGENTS_PTR_SIZE = $clog2(AGENTS_NUM);
 
     logic [AGENTS_PTR_SIZE-1:0] highest_priority, highest_priority_next;
-    
-    logic arb_done;
 
     always_ff@(posedge clk, posedge rst)
     begin
@@ -25,14 +23,13 @@ module round_robin_arbiter #(
     begin
         grants_o = {AGENTS_NUM{1'b0}};
         highest_priority_next = highest_priority;
-        arb_done = 0;
-        for(int i = 0; i < AGENTS_NUM & ~arb_done; i = i + 1)
+        for(int i = 0; i < AGENTS_NUM; i = i + 1)
         begin
             if(requests_i[(highest_priority + i) % AGENTS_NUM])
             begin
                 grants_o[(highest_priority + i) % AGENTS_NUM] = 1'b1;
                 highest_priority_next = (highest_priority + i + 1) % AGENTS_NUM;
-                arb_done = 1;
+                break;
             end
         end
     end
