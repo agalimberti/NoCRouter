@@ -13,7 +13,8 @@ module input_port #(
     input_port2crossbar.input_port crossbar_if,
     input_port2switch_allocator.input_port sa_if,
     input_port2vc_allocator.input_port va_if,
-    output logic [VC_NUM-1:0] on_off_o
+    output logic [VC_NUM-1:0] on_off_o,
+    output logic [VC_NUM-1:0] vc_allocatable_o
 );
 
     flit_t [VC_NUM-1:0] data;
@@ -24,6 +25,7 @@ module input_port #(
     logic [VC_NUM-1:0] write_cmd;
     logic [VC_NUM-1:0] is_full;
     logic [VC_NUM-1:0] is_empty;
+    port_t [VC_NUM-1:0] out_port;
 
     genvar vc;
     generate
@@ -46,7 +48,8 @@ module input_port #(
                 .is_full_o(is_full[vc]),
                 .is_empty_o(is_empty[vc]),
                 .on_off_o(on_off_o[vc]),
-                .out_port_o(sa_if.out_port[vc])
+                .out_port_o(out_port[vc]),
+                .vc_allocatable_o(vc_allocatable_o[vc])
             );
         end
     endgenerate
@@ -62,6 +65,9 @@ module input_port #(
         .y_dest_i(data_i.data.head_data.y_dest),
         .out_port_o(out_port_cmd)
     );
+
+    assign sa_if.out_port = out_port;
+    assign va_if.out_port = out_port;
 
     /*
     Combinational logic:
