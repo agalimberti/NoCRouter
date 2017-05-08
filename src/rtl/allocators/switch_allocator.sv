@@ -14,6 +14,7 @@ module switch_allocator #(
     input on_off_i [PORT_NUM-1:0][VC_NUM-1:0],
     input_block2switch_allocator.switch_allocator ib_if,
     switch_allocator2crossbar.switch_allocator xbar_if,
+    output logic valid_flit_o [PORT_NUM-1:0]    //to the downstream router
 );
 
     logic [VC_NUM-1:0] input_port_req [PORT_NUM-1:0];
@@ -53,6 +54,7 @@ module switch_allocator #(
         for(int port = 0; port < PORT_NUM ; port = port + 1)
         begin
             ib_if.valid_sel[port] = 1'b0;
+            valid_flit_o[port] = 1'b0;
             ib_if.vc_sel[port] = {VC_SIZE{1'b0}};
             xbar_if.input_vc_sel[port] = {PORT_SIZE{1'b0}};
             input_port_req[port] = {VC_NUM{1'b0}};
@@ -95,6 +97,7 @@ module switch_allocator #(
                         end
                     end
                     ib_if.valid_sel[in] = 1'b1;
+                    valid_flit_o[out] = 1'b1;
                     xbar_if.input_vc_sel[out] = (PORT_SIZE)'(in);
                 end
             end
