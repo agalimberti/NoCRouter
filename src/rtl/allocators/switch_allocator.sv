@@ -8,20 +8,13 @@ module switch_allocator #(
     input rst,
     input clk,
     /*
-    TODO: change the module ports to implement the IB2SA interface,
-    and make on_off_i compatible with the port coming out
+    TODO: make on_off_i compatible with the port coming out
     of the input_block module of the downstream router
     */
     input on_off_i [PORT_NUM-1:0][VC_NUM-1:0],
-    input [VC_SIZE-1:0] downstream_vc_i [PORT_NUM-1:0][VC_NUM-1:0],
-    input port_t out_port_i [PORT_NUM-1:0][VC_NUM-1:0],
-    input switch_request_i [PORT_NUM-1:0][VC_NUM-1:0],  //TODO: from Input Buffer, asserted when in SA state
-    output logic [VC_SIZE-1:0] vc_sel_o [PORT_NUM-1:0],
-    output logic valid_sel_o [PORT_NUM-1:0],
-    output logic [PORT_SIZE-1:0] crossbar_sel_o [PORT_NUM-1:0]  // TODO: interface with the Crossbar module missing
+    input_block2switch_allocator.switch_allocator ib_if,
+    switch_allocator2crossbar.switch_allocator xbar_if,
 );
-
-    localparam PORT_SIZE = $clog2(PORT_NUM);    //TODO: remove after using interface to Crossbar
 
     logic [VC_NUM-1:0] input_port_req [PORT_NUM-1:0];
     logic [VC_NUM-1:0] granted_vc [PORT_NUM-1:0];
@@ -59,9 +52,9 @@ module switch_allocator #(
     begin
         for(int port = 0; port < PORT_NUM ; port = port + 1)
         begin
-            valid_sel_o[port] = 1'b0;
-            vc_sel_o[port] = {VC_SIZE{1'b0}};
-            crossbar_sel_o[port] = {PORT_SIZE{1'b0}};
+            ib_if.valid_sel[port] = 1'b0;
+            ib_if.vc_sel[port] = {VC_SIZE{1'b0}};
+            xbar_if.input_vc_sel[port] = {PORT_SIZE{1'b0}};
             input_port_req[port] = {VC_NUM{1'b0}};
             requests_cmd[port]={PORT_NUM{1'b0}};
         end
@@ -70,7 +63,7 @@ module switch_allocator #(
         begin
             for(int vc = 0; vc < VC_NUM; vc = vc + 1)
             begin
-                if(switch_request_i[port][vc] & on_off_i[out_port_i[port][vc]][downstream_vc_i[port][vc]])
+                if(ib_if.switch_request[port][vc] & on_off_i[ib_if.out_port[port][vc]][ib_if.downstream_vc[port][vc]])
                 begin
                     input_port_req[port][vc] = 1'b1;
                 end
@@ -83,7 +76,7 @@ module switch_allocator #(
             begin
                 if(granted_vc[port][vc])
                 begin
-                    requests_cmd[port][out_port_i[port][vc]] = 1'b1;
+                    requests_cmd[port][ib_if.out_port[port][vc]] = 1'b1;
                 end
             end
         end
@@ -98,11 +91,11 @@ module switch_allocator #(
                     begin
                         if(granted_vc[in][vc])
                         begin
-                            vc_sel_o[out] = downstream_vc_i[in][vc];
+                            ib_if.vc_sel[out] = ib_if.downstream_vc[in][vc];
                         end
                     end
-                    valid_sel_o[out] = 1'b1;
-                    crossbar_sel_o[out] = (PORT_SIZE)'(in);
+                    ib_if.valid_sel[in] = 1'b1;
+                    xbar_if.input_vc_sel[out] = (PORT_SIZE)'(in);
                 end
             end
         end
