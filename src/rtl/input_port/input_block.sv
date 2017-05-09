@@ -46,6 +46,8 @@ module input_block #(
                 .on_off_o(on_off_o[ip]),
                 .vc_allocatable_o(vc_allocatable_o[ip]),
                 .vc_request_o(va_if.vc_request[ip]),
+                .switch_request_o(sa_if.switch_request[ip]),
+                .downstream_vc_o(sa_if.downstream_vc[ip]),
                 .out_port_o(out_port[ip])
             );
         end
