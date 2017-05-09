@@ -18,12 +18,14 @@ module input_buffer #(
     output logic on_off_o,
     output port_t out_port_o,
     output logic vc_request_o,
-    output logic vc_allocatable_o
+    output logic switch_request_o,
+    output logic vc_allocatable_o,
+    output logic [VC_SIZE-1:0] downstream_vc_o
 );
 
     enum logic [1:0] {IDLE, VA, SA} ss, ss_next;
 
-    logic [VC_SIZE-1:0] downstream_vc, downstream_vc_next;
+    logic [VC_SIZE-1:0] downstream_vc_next;
 
     logic read_cmd, write_cmd;
     logic end_packet, end_packet_next;
@@ -63,7 +65,7 @@ module input_buffer #(
         begin
             ss                  <= IDLE;
             out_port_o          <= LOCAL;
-            downstream_vc       <= 0;
+            downstream_vc_o     <= 0;
             end_packet          <= 0;
             vc_allocatable_o    <= 0;
         end
@@ -71,7 +73,7 @@ module input_buffer #(
         begin
             ss                  <= ss_next;
             out_port_o          <= out_port_next;
-            downstream_vc       <= downstream_vc_next;
+            downstream_vc_o     <= downstream_vc_next;
             end_packet          <= end_packet_next;
             vc_allocatable_o    <= vc_allocatable_next;
         end
@@ -93,12 +95,12 @@ module input_buffer #(
     always_comb
     begin
         data_o.flit_label = read_flit.flit_label;
-		data_o.vc_id = downstream_vc;
+		data_o.vc_id = downstream_vc_o;
 		data_o.data = read_flit.data;
 
         ss_next = ss;
         out_port_next = out_port_o;
-        downstream_vc_next = downstream_vc;
+        downstream_vc_next = downstream_vc_o;
 
         read_cmd = 0;
         write_cmd = 0;
@@ -106,6 +108,7 @@ module input_buffer #(
         end_packet_next = end_packet;
 
         vc_request_o = 0;
+        switch_request_o = 0;
         vc_allocatable_next = 0;
         
         unique case(ss)
@@ -135,6 +138,7 @@ module input_buffer #(
 
             SA:
             begin
+                switch_request_o = 1;
                 if(read_i & data_o.flit_label == TAIL)
                 begin
                     ss_next = IDLE;
