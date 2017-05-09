@@ -11,7 +11,7 @@ module switch_allocator #(
     TODO: make on_off_i compatible with the port coming out
     of the input_block module of the downstream router
     */
-    input on_off_i [PORT_NUM-1:0][VC_NUM-1:0],
+    input [PORT_NUM-1:0][VC_NUM-1:0] on_off_i,
     input_block2switch_allocator.switch_allocator ib_if,
     switch_allocator2crossbar.switch_allocator xbar_if,
     output logic valid_flit_o [PORT_NUM-1:0]    //to the downstream router
