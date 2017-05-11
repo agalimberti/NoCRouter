@@ -69,7 +69,7 @@ module tb_input_port #(
         pkt_size = 4;
         vc_num = {VC_SIZE{$random}};
         vc_new = {VC_SIZE{$random}};
-        insert_packet(vc_num, vc_new, pkt_size, 0);  
+        insert_packet(vc_num, vc_new, pkt_size, 3);  
         
         // No body flits pkt
         pkt_size = 2;
@@ -83,9 +83,10 @@ module tb_input_port #(
         
         //double head flit
         
-        //body flit without head flit
+        //BODY & TAIL flits without HEAD flit
+        noHead();
         
-        #20 $finish;
+        #10 $finish;
     end
     
     // Clock update
@@ -177,8 +178,7 @@ module tb_input_port #(
             @(posedge clk) 
                 begin
                     write_flit(vc_new);
-                end 
-        */
+                end */
         end
         else
             begin
@@ -189,6 +189,11 @@ module tb_input_port #(
                 valid_sel_cmd <= 0;
                 flit_count++;
             end 
+            
+//            repeat(wait_time)@(posedge clk)
+//            begin
+//                valid_flit_cmd <= 0;
+//            end
                  
             for(body_num=0; body_num<(pkt_size-2); body_num++)
             begin
@@ -265,8 +270,30 @@ module tb_input_port #(
     
 //    endtask
     
-
-//    task noHead();
-    
-//    endtask
+    task noHead();
+        @(posedge clk)
+        begin
+            valid_sel_cmd <= 0;
+            create_flit(BODY, 0);
+            write_flit(0);
+        end
+        @(posedge clk)
+        begin
+            valid_flit_cmd <= 0;
+            if(~(is_empty_o[0]))
+                $finish;
+        end
+        @(posedge clk)
+        begin
+            valid_sel_cmd <= 0;
+            create_flit(TAIL, 0);
+            write_flit(0);
+        end 
+        @(posedge clk)
+        begin
+            valid_flit_cmd <= 0;
+            if(~is_empty_o[0])
+                $finish;
+        end
+    endtask
 endmodule
