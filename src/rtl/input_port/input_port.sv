@@ -18,7 +18,9 @@ module input_port #(
     output logic [VC_NUM-1:0] on_off_o,
     output logic [VC_NUM-1:0] vc_allocatable_o,
     output logic [VC_NUM-1:0] vc_request_o,
-    output port_t [VC_NUM-1:0] out_port_o
+    output port_t [VC_NUM-1:0] out_port_o,
+    output logic [VC_NUM-1:0] is_full_o,
+    output logic [VC_NUM-1:0] is_empty_o
 );
 
     flit_t [VC_NUM-1:0] data;
@@ -27,8 +29,6 @@ module input_port #(
 
     logic [VC_NUM-1:0] read_cmd;
     logic [VC_NUM-1:0] write_cmd;
-    logic [VC_NUM-1:0] is_full;
-    logic [VC_NUM-1:0] is_empty;
 
     genvar vc;
     generate
@@ -48,8 +48,8 @@ module input_port #(
                 .rst(rst),
                 .clk(clk),
                 .data_o(data[vc]),
-                .is_full_o(is_full[vc]),
-                .is_empty_o(is_empty[vc]),
+                .is_full_o(is_full_o[vc]),
+                .is_empty_o(is_empty_o[vc]),
                 .on_off_o(on_off_o[vc]),
                 .out_port_o(out_port_o[vc]),
                 .vc_request_o(vc_request_o[vc]),
