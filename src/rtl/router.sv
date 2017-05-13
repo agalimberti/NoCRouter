@@ -37,53 +37,53 @@ module router #(
 
     always_comb
     begin
-        router_if_local_up.data = data_out[0];
-        router_if_north_up.data = data_out[1];
-        router_if_south_up.data = data_out[2];
-        router_if_west_up.data = data_out[3];
-        router_if_east_up.data = data_out[4];
+        router_if_local_up.data = data_out[LOCAL];
+        router_if_north_up.data = data_out[NORTH];
+        router_if_south_up.data = data_out[SOUTH];
+        router_if_west_up.data = data_out[WEST];
+        router_if_east_up.data = data_out[EAST];
 
-        router_if_local_up.valid_flit = valid_flit_out[0];
-        router_if_north_up.valid_flit = valid_flit_out[1];
-        router_if_south_up.valid_flit = valid_flit_out[2];
-        router_if_west_up.valid_flit = valid_flit_out[3];
-        router_if_east_up.valid_flit = valid_flit_out[4];
+        router_if_local_up.valid_flit = valid_flit_out[LOCAL];
+        router_if_north_up.valid_flit = valid_flit_out[NORTH];
+        router_if_south_up.valid_flit = valid_flit_out[SOUTH];
+        router_if_west_up.valid_flit = valid_flit_out[WEST];
+        router_if_east_up.valid_flit = valid_flit_out[EAST];
 
-        on_off_in[0] = router_if_local_up.on_off;
-        on_off_in[1] = router_if_north_up.on_off;
-        on_off_in[2] = router_if_south_up.on_off;
-        on_off_in[3] = router_if_west_up.on_off;
-        on_off_in[4] = router_if_east_up.on_off;
+        on_off_in[LOCAL] = router_if_local_up.on_off;
+        on_off_in[NORTH] = router_if_north_up.on_off;
+        on_off_in[SOUTH] = router_if_south_up.on_off;
+        on_off_in[WEST] = router_if_west_up.on_off;
+        on_off_in[EAST] = router_if_east_up.on_off;
 
-        is_allocatable_in[0] = router_if_local_up.is_allocatable;
-        is_allocatable_in[1] = router_if_north_up.is_allocatable;
-        is_allocatable_in[2] = router_if_south_up.is_allocatable;
-        is_allocatable_in[3] = router_if_west_up.is_allocatable;
-        is_allocatable_in[4] = router_if_east_up.is_allocatable;
+        is_allocatable_in[LOCAL] = router_if_local_up.is_allocatable;
+        is_allocatable_in[NORTH] = router_if_north_up.is_allocatable;
+        is_allocatable_in[SOUTH] = router_if_south_up.is_allocatable;
+        is_allocatable_in[WEST] = router_if_west_up.is_allocatable;
+        is_allocatable_in[EAST] = router_if_east_up.is_allocatable;
 
-        data_in[0] = router_if_local_down.data;
-        data_in[1] = router_if_north_down.data;
-        data_in[2] = router_if_south_down.data;
-        data_in[3] = router_if_west_down.data;
-        data_in[4] = router_if_east_down.data;
+        data_in[LOCAL] = router_if_local_down.data;
+        data_in[NORTH] = router_if_north_down.data;
+        data_in[SOUTH] = router_if_south_down.data;
+        data_in[WEST] = router_if_west_down.data;
+        data_in[EAST] = router_if_east_down.data;
 
-        valid_flit_in[0] = router_if_local_down.valid_flit;
-        valid_flit_in[1] = router_if_north_down.valid_flit;
-        valid_flit_in[2] = router_if_south_down.valid_flit;
-        valid_flit_in[3] = router_if_west_down.valid_flit;
-        valid_flit_in[4] = router_if_east_down.valid_flit;
+        valid_flit_in[LOCAL] = router_if_local_down.valid_flit;
+        valid_flit_in[NORTH] = router_if_north_down.valid_flit;
+        valid_flit_in[SOUTH] = router_if_south_down.valid_flit;
+        valid_flit_in[WEST] = router_if_west_down.valid_flit;
+        valid_flit_in[EAST] = router_if_east_down.valid_flit;
 
-        router_if_local_down.on_off = on_off_out[0];
-        router_if_north_down.on_off = on_off_out[1];
-        router_if_south_down.on_off = on_off_out[2];
-        router_if_west_down.on_off = on_off_out[3];
-        router_if_east_down.on_off = on_off_out[4];
+        router_if_local_down.on_off = on_off_out[LOCAL];
+        router_if_north_down.on_off = on_off_out[NORTH];
+        router_if_south_down.on_off = on_off_out[SOUTH];
+        router_if_west_down.on_off = on_off_out[WEST];
+        router_if_east_down.on_off = on_off_out[EAST];
 
-        router_if_local_down.is_allocatable = is_allocatable_out[0];
-        router_if_north_down.is_allocatable = is_allocatable_out[1];
-        router_if_south_down.is_allocatable = is_allocatable_out[2];
-        router_if_west_down.is_allocatable = is_allocatable_out[3];
-        router_if_east_down.is_allocatable = is_allocatable_out[4];
+        router_if_local_down.is_allocatable = is_allocatable_out[LOCAL];
+        router_if_north_down.is_allocatable = is_allocatable_out[NORTH];
+        router_if_south_down.is_allocatable = is_allocatable_out[SOUTH];
+        router_if_west_down.is_allocatable = is_allocatable_out[WEST];
+        router_if_east_down.is_allocatable = is_allocatable_out[EAST];
 
     end
 
