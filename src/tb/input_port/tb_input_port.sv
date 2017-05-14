@@ -9,13 +9,14 @@ module tb_input_port #(
     parameter Y_CURRENT = MESH_SIZE_Y/2
 );
 
-    //TESTBENCH 
+    //TESTBENCH
     flit_t flit_written;
     flit_t flit_queue[$];
     flit_t flit_read;
-    int num_op, body_num, pkt_num, pkt_i, pkt_size, wait_time, flit_count, flit_diff;
+    int num_op, pkt_size, wait_time, flit_num, timer, flit_to_read, flit_to_read_next, total_time;
+    logic insert_not_compl, va_done;
     logic [VC_SIZE-1:0] vc_num, vc_new;
-    
+
     //INPUT PORT
     flit_t data_cmd;
     logic valid_flit_cmd;
@@ -25,7 +26,7 @@ module tb_input_port #(
     logic [VC_SIZE-1:0] vc_new_cmd [VC_NUM-1:0];
     logic [VC_NUM-1:0] vc_valid_cmd;
     logic valid_sel_cmd;
-    
+
     flit_t flit_o;
     wire [VC_NUM-1:0] on_off_o;
     wire [VC_NUM-1:0] vc_allocatable_o;
@@ -69,35 +70,36 @@ module tb_input_port #(
         pkt_size = 4;
         vc_num = {VC_SIZE{$random}};
         vc_new = {VC_SIZE{$random}};
-        insert_packet(vc_num, vc_new, pkt_size, 3);  
+        test(vc_num, vc_new, pkt_size, 0, 2);
+        
+        // Standard packet, 4 flits, with delay between them
+        test(vc_num, vc_new, pkt_size, 2, 2);
         
         // No body flits pkt
         pkt_size = 2;
         vc_num = {VC_SIZE{$random}};
         vc_new = {VC_SIZE{$random}};
-        insert_packet(vc_num, vc_new, pkt_size, 0);  
-        
+        test(vc_num, vc_new, pkt_size, 0, 1);
+
         // Long pkt (exceeds buffer length)
-        
-        // pkt with idle cycles between flits
-        
-        //double head flit
-        
-        //BODY & TAIL flits without HEAD flit
+
+        // Double head flit
+
+        // BODY & TAIL flits without HEAD flit
         noHead();
-        
+
         #10 $finish;
     end
-    
+
     // Clock update
     always #5 clk = ~clk;
 
-    // Output dump 
+    // Output dump
     task dump_output();
         $dumpfile("out.vcd");
-        $dumpvars(0, tb_input_port);     
+        $dumpvars(0, tb_input_port);
     endtask
-    
+
     // Initialize signals
     task initialize();
         clk             <= 0;
@@ -109,7 +111,7 @@ module tb_input_port #(
         for(int i=0; i<VC_NUM; i++)
             vc_new_cmd[i] = 0;
     endtask
-    
+
     // Create a flit to be written in both DUT and queue
     task create_flit(input flit_label_t lab, input logic [VC_SIZE-1:0] curr_vc);
             flit_written.flit_label = lab;
@@ -117,37 +119,19 @@ module tb_input_port #(
             if(lab == HEAD)
                 begin
                     flit_written.data.head_data.x_dest  = {DEST_ADDR_SIZE_X{num_op}};
-                    flit_written.data.head_data.y_dest  = {DEST_ADDR_SIZE_Y{num_op}}; 
-                    flit_written.data.head_data.head_pl = {HEAD_PAYLOAD_SIZE{num_op}}; 
+                    flit_written.data.head_data.y_dest  = {DEST_ADDR_SIZE_Y{num_op}};
+                    flit_written.data.head_data.head_pl = {HEAD_PAYLOAD_SIZE{num_op}};
                 end
             else
                     flit_written.data.bt_pl = {FLIT_DATA_SIZE{num_op}};
     endtask
-    
+
     // De-assert the reset signal
     task clear_reset();
         @(posedge clk);
             rst <= 0;
     endtask
-    
-    // Read and check a single flit of the pkt
-    task read_flit(input logic [VC_SIZE-1:0] vc);
-        num_op++;
-        begin
-            flit_read = flit_queue.pop_front();
-            //@(posedge clk)
-            begin
-                //valid_flit_cmd  <= 0;
-                valid_sel_cmd   <= 1;
-                vc_sel_cmd      <= vc;           
-            end
-            @(negedge clk)
-            begin
-                check_flits(vc);
-            end
-        end
-    endtask 
-    
+
     // Write flit into the DUT module
     task write_flit(input logic [VC_SIZE-1:0] vc_new);
         begin
@@ -158,102 +142,22 @@ module tb_input_port #(
         num_op++;
         push_flit(vc_new);
     endtask
-    
+
     // Push the actual flit, with the new vc, into the buffer
     task push_flit(input logic [VC_SIZE-1:0] vc_new);
-        $display("%d", $time);
+        $display("push %d", $time);
         flit_written.vc_id = vc_new;
         flit_queue.push_back(flit_written);
     endtask
-    
-    // Insert a new packet with the given number of flits
-    task insert_packet(input logic [VC_SIZE-1:0] curr_vc, input logic [VC_SIZE-1:0] vc_new, input integer pkt_size, input integer wait_time);
-        $display("Packet size: %d", pkt_size);
-        
-        flit_count = 0;
-        flit_diff = 0;
-        if(pkt_size == 1)
-        begin
-        /*  create_flit(HEAD_TAIL, curr_vc);
-            @(posedge clk) 
-                begin
-                    write_flit(vc_new);
-                end */
-        end
-        else
-            begin
-            @(posedge clk) 
-            begin
-                create_flit(HEAD, curr_vc);
-                write_flit(vc_new);
-                valid_sel_cmd <= 0;
-                flit_count++;
-            end 
-            
-//            repeat(wait_time)@(posedge clk)
-//            begin
-//                valid_flit_cmd <= 0;
-//            end
-                 
-            for(body_num=0; body_num<(pkt_size-2); body_num++)
-            begin
-                @(posedge clk)
-                begin
-                    flit_count++;  
-                    create_flit(BODY, curr_vc);   
-                    write_flit(vc_new);
-                    if(body_num == 0)
-                    begin
-                        vc_valid_cmd[curr_vc]   <= 1;
-                        vc_new_cmd[curr_vc]     <= vc_new;
-                    end
-                    else
-                    begin 
-                        vc_valid_cmd[curr_vc]   <= 0;
-                    end
-                    
-                    if(flit_count > 2)
-                        read_flit(curr_vc);
-                end
-            end
-            
-            @(posedge clk)
-            begin
-                flit_count++;
-                create_flit(TAIL, curr_vc); 
-                write_flit(vc_new);
-                if(flit_count == 2)
-                begin
-                    vc_valid_cmd[curr_vc] <= 1;
-                    vc_new_cmd[curr_vc]     <= vc_new;
-                end
-                else 
-                    read_flit(curr_vc);
-            end
-            
-            while(~(is_empty_o[curr_vc]) | flit_count==2)
-            begin
-                flit_count++;
-                @(posedge clk)
-                //$display("TIME %d, %b", $time, is_empty_o[curr_vc]);
-                begin
-                    valid_flit_cmd <= 0;
-                    read_flit(curr_vc);
-                end
-            end
-            
-            //$display("TIME %d, %b", $time, is_empty_o[curr_vc]);
-        end
-    endtask
-    
+
     /*
-    Checks the correspondance between the flit extracted 
+    Checks the correspondance between the flit extracted
     from the queue and the one in data_o.
     If the check goes wrong an error message is displayed
     and the testbench ends.
     */
     task check_flits(input logic [VC_SIZE-1:0] vc);
-        if(~(is_empty_o[vc]))
+        if(~(is_empty_o[vc]) | flit_to_read > 0)
         begin
             if(~(flit_read === flit_o))
             begin
@@ -264,12 +168,7 @@ module tb_input_port #(
                 $display("[READ] PASSED %d", $time);
         end
     endtask
-    
-    
-//    task doubleHead();
-    
-//    endtask
-    
+
     task noHead();
         @(posedge clk)
         begin
@@ -288,7 +187,7 @@ module tb_input_port #(
             valid_sel_cmd <= 0;
             create_flit(TAIL, 0);
             write_flit(0);
-        end 
+        end
         @(posedge clk)
         begin
             valid_flit_cmd <= 0;
@@ -296,4 +195,107 @@ module tb_input_port #(
                 $finish;
         end
     endtask
+
+    task test(input logic [VC_SIZE-1:0] curr_vc, input logic [VC_SIZE-1:0] vc_new, input integer pkt_size, input integer wait_time, input integer va_time);
+        flit_num = 0;
+        timer = 0;
+        flit_to_read = 0;
+        insert_not_compl = 1;
+        total_time = 0;
+
+        while(flit_to_read > 0 | insert_not_compl == 1) @(posedge clk)
+        begin
+            $display("%d, total time:%d, to read %d, timer %d",$time,total_time, flit_to_read, timer);
+            insertFlit(curr_vc,wait_time);
+            commandIP(curr_vc, va_time);
+            readFlit(curr_vc);
+            total_time++;
+            flit_to_read = flit_to_read_next;
+            $display("%d, total time:%d, to read %d, timer  %d",$time,total_time, flit_to_read, timer);
+        end
+        @(posedge clk)
+        begin
+            valid_sel_cmd   <= 0;
+            va_done         <= 0;
+        end
+    endtask
+
+    task insertFlit(input logic [VC_SIZE-1:0] vc, input integer wait_time);
+    if(pkt_size == 1)
+        begin
+        /*  
+            create_flit(HEAD_TAIL, curr_vc);
+            @(posedge clk)
+                begin
+                    write_flit(vc_new);
+                end
+        */
+        end
+    else
+        begin
+            if(timer == 0 & insert_not_compl)
+                begin
+                    flit_num++;
+                    flit_to_read_next++;
+                    
+                    if(flit_num == 1)
+                        begin
+                            create_flit(HEAD, vc);
+                            write_flit(vc_new);
+                        end
+                    else if (flit_num == pkt_size)
+                        begin
+                            create_flit(TAIL, vc);
+                            write_flit(vc_new);
+                            insert_not_compl = 0; // Deassert completion flag
+                        end
+                    else
+                        begin
+                            create_flit(BODY, vc);
+                            write_flit(vc_new);
+                        end
+                    timer = wait_time; // reset timer
+                end
+            else
+                begin
+                    valid_flit_cmd <= 0;
+                    timer--;
+                end
+        end
+    endtask
+
+    task readFlit(input logic [VC_SIZE-1:0] vc);
+        if(flit_to_read > 0 & va_done)
+        begin
+            num_op++;
+            flit_to_read_next--;
+            begin
+                flit_read = flit_queue.pop_front();
+                begin
+                    valid_sel_cmd   <= 1;
+                    vc_sel_cmd      <= vc;
+                end
+                @(negedge clk)
+                begin
+                    check_flits(vc);
+                end
+            end
+        end
+    endtask
+
+    task commandIP(input logic [VC_SIZE-1:0] vc, input integer va_time);
+        if(total_time == va_time) //VA phase
+        begin
+            va_done             <= 1;
+            vc_valid_cmd[vc]    <= 1;
+            vc_new_cmd[vc]      <= vc_new;
+        end
+        else if(total_time > 1) //SA phase
+        begin
+            vc_valid_cmd[vc]    <= 0; //VA already done
+            valid_sel_cmd       <= 1;
+            vc_sel_cmd          <= vc;
+        end
+    endtask
+
 endmodule
