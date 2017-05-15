@@ -75,15 +75,16 @@ module tb_input_port #(
         // Standard packet, 4 flits, with delay between them
         test(vc_num, vc_new, pkt_size, 2, 2, 1);
         
-        // No body flits pkt
+        // No BODY flits pkt
         pkt_size = 2;
         vc_num = {VC_SIZE{$random}};
         vc_new = {VC_SIZE{$random}};
         test(vc_num, vc_new, pkt_size, 0, 1, 0);
 
         // Long pkt (exceeds buffer length)
-
-        // Double head flit
+        test(vc_num, vc_new, 16, 0, 1, 0);
+        
+        // Double HEAD flit
 
         // BODY & TAIL flits without HEAD flit
         noHead();
@@ -197,9 +198,9 @@ module tb_input_port #(
     endtask
 
     /**
-    sa_time is considered in cycles after va_time
+    NOTE: sa_time is considered in cycles after va_time
     */
-    task test(input logic [VC_SIZE-1:0] curr_vc, input logic [VC_SIZE-1:0] vc_new, input integer pkt_size, input integer wait_time, input integer va_time, input integer sa_time);
+    task test(input logic [VC_SIZE-1:0] curr_vc, input logic [VC_SIZE-1:0] vc_new, input integer size, input integer wait_time, input integer va_time, input integer sa_time);
         flit_num = 0;
         timer = 0;
         flit_to_read = 0;
@@ -209,7 +210,7 @@ module tb_input_port #(
         while(flit_to_read > 0 | insert_not_compl == 1) @(posedge clk)
         begin
             $display("%d, total time:%d, to read %d, timer %d",$time,total_time, flit_to_read, timer);
-            insertFlit(curr_vc,wait_time);
+            insertFlit(curr_vc, size, wait_time);
             commandIP(curr_vc, va_time, sa_time);
             readFlit(curr_vc);
             total_time++;
@@ -223,8 +224,8 @@ module tb_input_port #(
         end
     endtask
 
-    task insertFlit(input logic [VC_SIZE-1:0] vc, input integer wait_time);
-    if(pkt_size == 1)
+    task insertFlit(input logic [VC_SIZE-1:0] vc, input integer size, input integer wait_time);
+    if(size == 1)
         begin
         /*  
             create_flit(HEAD_TAIL, curr_vc);
@@ -246,11 +247,11 @@ module tb_input_port #(
                             create_flit(HEAD, vc);
                             write_flit(vc_new);
                         end
-                    else if (flit_num == pkt_size)
+                    else if (flit_num == size)
                         begin
                             create_flit(TAIL, vc);
                             write_flit(vc_new);
-                            insert_not_compl = 0; // Deassert completion flag
+                            insert_not_compl <= 0; // Deassert completion flag
                         end
                     else
                         begin
@@ -262,7 +263,8 @@ module tb_input_port #(
             else
                 begin
                     valid_flit_cmd <= 0;
-                    timer--;
+                    if(timer>0)
+                        timer--;
                 end
         end
     endtask
