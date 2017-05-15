@@ -70,16 +70,16 @@ module tb_input_port #(
         pkt_size = 4;
         vc_num = {VC_SIZE{$random}};
         vc_new = {VC_SIZE{$random}};
-        test(vc_num, vc_new, pkt_size, 0, 2);
+        test(vc_num, vc_new, pkt_size, 0, 2, 2);
         
         // Standard packet, 4 flits, with delay between them
-        test(vc_num, vc_new, pkt_size, 2, 2);
+        test(vc_num, vc_new, pkt_size, 2, 2, 1);
         
         // No body flits pkt
         pkt_size = 2;
         vc_num = {VC_SIZE{$random}};
         vc_new = {VC_SIZE{$random}};
-        test(vc_num, vc_new, pkt_size, 0, 1);
+        test(vc_num, vc_new, pkt_size, 0, 1, 0);
 
         // Long pkt (exceeds buffer length)
 
@@ -196,7 +196,10 @@ module tb_input_port #(
         end
     endtask
 
-    task test(input logic [VC_SIZE-1:0] curr_vc, input logic [VC_SIZE-1:0] vc_new, input integer pkt_size, input integer wait_time, input integer va_time);
+    /**
+    sa_time is considered in cycles after va_time
+    */
+    task test(input logic [VC_SIZE-1:0] curr_vc, input logic [VC_SIZE-1:0] vc_new, input integer pkt_size, input integer wait_time, input integer va_time, input integer sa_time);
         flit_num = 0;
         timer = 0;
         flit_to_read = 0;
@@ -207,7 +210,7 @@ module tb_input_port #(
         begin
             $display("%d, total time:%d, to read %d, timer %d",$time,total_time, flit_to_read, timer);
             insertFlit(curr_vc,wait_time);
-            commandIP(curr_vc, va_time);
+            commandIP(curr_vc, va_time, sa_time);
             readFlit(curr_vc);
             total_time++;
             flit_to_read = flit_to_read_next;
@@ -283,16 +286,17 @@ module tb_input_port #(
         end
     endtask
 
-    task commandIP(input logic [VC_SIZE-1:0] vc, input integer va_time);
+    task commandIP(input logic [VC_SIZE-1:0] vc, input integer va_time, input integer sa_time);
+        vc_valid_cmd    <= 0;
+        
         if(total_time == va_time) //VA phase
         begin
             va_done             <= 1;
             vc_valid_cmd[vc]    <= 1;
             vc_new_cmd[vc]      <= vc_new;
         end
-        else if(total_time > 1) //SA phase
+        else if(total_time > va_time+sa_time) //SA phase
         begin
-            vc_valid_cmd[vc]    <= 0; //VA already done
             valid_sel_cmd       <= 1;
             vc_sel_cmd          <= vc;
         end
