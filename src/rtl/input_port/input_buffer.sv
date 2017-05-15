@@ -26,7 +26,6 @@ module input_buffer #(
     logic [VC_SIZE-1:0] downstream_vc, downstream_vc_next;
 
     logic read_cmd, write_cmd;
-    logic end_packet, end_packet_next;
     logic vc_allocatable_next;
 
     flit_t read_flit;
@@ -64,7 +63,6 @@ module input_buffer #(
             ss                  <= IDLE;
             out_port_o          <= LOCAL;
             downstream_vc       <= 0;
-            end_packet          <= 0;
             vc_allocatable_o    <= 1;
         end
         else
@@ -72,7 +70,6 @@ module input_buffer #(
             ss                  <= ss_next;
             out_port_o          <= out_port_next;
             downstream_vc       <= downstream_vc_next;
-            end_packet          <= end_packet_next;
             vc_allocatable_o    <= vc_allocatable_next;
         end
     end
@@ -103,8 +100,6 @@ module input_buffer #(
         read_cmd = 0;
         write_cmd = 0;
 
-        end_packet_next = end_packet;
-
         vc_request_o = 0;
         vc_allocatable_next = 0;
         
@@ -127,10 +122,8 @@ module input_buffer #(
                     ss_next = SA;
                     downstream_vc_next = vc_new_i;
                 end
-                if(write_i & (data_i.flit_label == BODY | data_i.flit_label == TAIL) & ~end_packet)
+                if(write_i & (data_i.flit_label == BODY | data_i.flit_label == TAIL))
                     write_cmd = 1;
-                if(write_i & data_i.flit_label == TAIL)
-                    end_packet_next = 1;
             end
 
             SA:
@@ -140,7 +133,7 @@ module input_buffer #(
                     ss_next = IDLE;
                     vc_allocatable_next = 1;
                 end
-                if(write_i & (data_i.flit_label == BODY | data_i.flit_label == TAIL) & ~end_packet)
+                if(write_i & (data_i.flit_label == BODY | data_i.flit_label == TAIL))
                     write_cmd = 1;
                 if(read_i)
                     read_cmd = 1;
