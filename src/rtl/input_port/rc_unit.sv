@@ -4,15 +4,18 @@ module rc_unit #(
     parameter X_CURRENT = 0,
     parameter Y_CURRENT = 0,
     parameter DEST_ADDR_SIZE_X = 4,
-    parameter DEST_ADDR_SIZE_Y = 4    
+    parameter DEST_ADDR_SIZE_Y = 4
 )(
     input logic [DEST_ADDR_SIZE_X-1 : 0] x_dest_i,
     input logic [DEST_ADDR_SIZE_Y-1 : 0] y_dest_i,
     output port_t out_port_o
 );
 
-    logic signed [DEST_ADDR_SIZE_X-1 : 0] x_offset;
-    logic signed [DEST_ADDR_SIZE_Y-1 : 0] y_offset;
+    wire signed [DEST_ADDR_SIZE_X-1 : 0] x_offset;
+    wire signed [DEST_ADDR_SIZE_Y-1 : 0] y_offset;
+
+    assign x_offset = x_dest_i - X_CURRENT;
+    assign y_offset = y_dest_i - Y_CURRENT;
 
     /*
     Combinational logic:
@@ -28,9 +31,6 @@ module rc_unit #(
     */
     always_comb
     begin
-        x_offset = x_dest_i - X_CURRENT;
-        y_offset = y_dest_i - Y_CURRENT;
-
         unique if (x_offset < 0)
         begin
             out_port_o = WEST;
