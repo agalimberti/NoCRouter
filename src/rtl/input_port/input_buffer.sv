@@ -20,7 +20,8 @@ module input_buffer #(
     output logic vc_request_o,
     output logic switch_request_o,
     output logic vc_allocatable_o,
-    output logic [VC_SIZE-1:0] downstream_vc_o
+    output logic [VC_SIZE-1:0] downstream_vc_o,
+    output logic error_o
 );
 
     enum logic [1:0] {IDLE, VA, SA} ss, ss_next;
@@ -29,6 +30,7 @@ module input_buffer #(
 
     logic read_cmd, write_cmd;
     logic vc_allocatable_next;
+    logic error_next;
 
     flit_t read_flit;
 
@@ -66,6 +68,7 @@ module input_buffer #(
             out_port_o          <= LOCAL;
             downstream_vc_o     <= 0;
             vc_allocatable_o    <= 0;
+            error_o             <= 0;
         end
         else
         begin
@@ -73,6 +76,7 @@ module input_buffer #(
             out_port_o          <= out_port_next;
             downstream_vc_o     <= downstream_vc_next;
             vc_allocatable_o    <= vc_allocatable_next;
+            error_o             <= error_next;
         end
     end
 
@@ -102,10 +106,12 @@ module input_buffer #(
         read_cmd = 0;
         write_cmd = 0;
 
+        error_next = 0;
+
         vc_request_o = 0;
         switch_request_o = 0;
         vc_allocatable_next = 0;
-        
+
         unique case(ss)
             IDLE:
             begin
@@ -114,6 +120,11 @@ module input_buffer #(
                     ss_next = VA;
                     out_port_next = out_port_i;
                     write_cmd = 1;
+                end
+
+                if(vc_valid_i | read_i | ((data_i.flit_label == BODY | data_i.flit_label == TAIL) & write_i) | ~is_empty_o)
+                begin
+                    error_next = 1;
                 end
             end
 
@@ -127,6 +138,10 @@ module input_buffer #(
                 end
                 if(write_i & (data_i.flit_label == BODY | data_i.flit_label == TAIL))
                     write_cmd = 1;
+                if((write_i & (end_packet | data_i.flit_label == HEAD)) | read_i)
+                begin
+                    error_next = 1;
+                end
             end
 
             SA:
@@ -141,11 +156,16 @@ module input_buffer #(
                     write_cmd = 1;
                 if(read_i)
                     read_cmd = 1;
+                if((write_i & (end_packet | data_i.flit_label == HEAD)) | vc_valid_i)
+                begin
+                    error_next = 1;
+                end
             end
 
             default:
             begin
                 ss_next = IDLE;
+                error_next = 1;
             end
 
         endcase
