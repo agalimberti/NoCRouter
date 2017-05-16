@@ -67,8 +67,8 @@ module tb_input_port #(
         clear_reset();
 
         /*
-            The parameters requested from the test task are the following ones:
-            test(vc_num, vc_neww, pkt_size, wait_time, va_time, sa_time)
+        The parameters requested from the test task are the following ones:
+        test(vc_num, vc_neww, pkt_size, wait_time, va_time, sa_time)
         */
         
         // Standard 4 flits packet
@@ -188,9 +188,9 @@ module tb_input_port #(
     endtask
 
     /*
-        This task try to insert into the module a BODY and a TAIL
-        flit without the usual leading HEAD flit. 
-        A simple check is done in order to check the proper behavior of the dut.
+    This task try to insert into the module a BODY and a TAIL
+    flit without the usual leading HEAD flit. 
+    A simple check is done in order to check the proper behavior of the dut.
     */ 
     task noHead();
         @(posedge clk)
@@ -263,14 +263,15 @@ module tb_input_port #(
     endtask
     
     /*
-    
+    This task is responsible of calling the proper writing task according to some connditions.
+    As input it takes the actual vc identifier, the size of the packe and the wait_time (task test(..) for its description).
     */
     task insertFlit(input logic [VC_SIZE-1:0] vc, input integer size, input integer wait_time);
     $display("head cnt %d", head_count);
     if(size == 1)
         begin
         /*  
-            create_flit(HEAD_TAIL, curr_vc);
+            create_flit(HEADTAIL, curr_vc);
             @(posedge clk)
                 begin
                     write_flit(vc_new);
@@ -317,6 +318,10 @@ module tb_input_port #(
         end
     endtask
 
+    /*
+    This task, if there are flits to be read and the va hasn't been done yet, update some control variables and then pops a flit
+    out of the queue and calls the check task (on the next fallingg edge of the clk). 
+    */
     task readFlit(input logic [VC_SIZE-1:0] vc);
         if(flit_to_read > 0 & va_done)
         begin
@@ -336,6 +341,11 @@ module tb_input_port #(
         end
     endtask
 
+    /*
+    In this task, the command for the VA and the SA are asserted at specific cycles, tracked with the total_time, sa_time and va_time variables.
+    In particular, the va_time indicates the cycles at which the va will be executed (number of cycles wrt the initial flit write); 
+    while the sa_time indicates the cycle for the sa execution: its value gives the number of cycles to wait after the va_time.
+    */  
     task commandIP(input logic [VC_SIZE-1:0] vc, input integer va_time, input integer sa_time);
         
         vc_valid_cmd    <= 0;
