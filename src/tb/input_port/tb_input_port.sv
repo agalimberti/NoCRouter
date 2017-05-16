@@ -94,6 +94,10 @@ module tb_input_port #(
         multiple_head = 3;
         test(vc_num, vc_new, 6, 0, 1, 0);
         
+        // Single flit packet
+        multiple_head = 0;
+        test(vc_num, vc_new, 1, 0, 1, 1);
+        
         // BODY & TAIL flits without HEAD flit
         multiple_head = 0;
         noHead();
@@ -118,7 +122,7 @@ module tb_input_port #(
         vc_sel_cmd      = 0;
         vc_valid_cmd    = 0;
         valid_sel_cmd   = 0;
-        for(int i=0; i<VC_NUM; i++)
+        for(int i=0; i < VC_NUM; i++)
             vc_new_cmd[i] = 0;
     endtask
 
@@ -243,16 +247,16 @@ module tb_input_port #(
         head_done           = 0;
         head_count          = multiple_head;
 
-        $display("Pkt %d", size);
+        $display("Packet size: %d", size);
         while(flit_to_read > 0 | insert_not_compl == 1) @(posedge clk)
         begin
-            $display("%d, total time:%d, to read %d, timer %d",$time,total_time, flit_to_read, timer);
+            $display("Time %d, total time:%d, to read %d, timer %d",$time,total_time, flit_to_read, timer);
             insertFlit(curr_vc, size, wait_time);
             commandIP(curr_vc, va_time, sa_time);
             readFlit(curr_vc);
             total_time++;
             flit_to_read = flit_to_read_next;
-            $display("%d, total time:%d, to read %d, timer  %d",$time,total_time, flit_to_read, timer);
+            $display("Time %d, total time:%d, to read %d, timer  %d",$time,total_time, flit_to_read, timer);
         end
         
         @(posedge clk)
@@ -267,55 +271,58 @@ module tb_input_port #(
     As input it takes the actual vc identifier, the size of the packe and the wait_time (task test(..) for its description).
     */
     task insertFlit(input logic [VC_SIZE-1:0] vc, input integer size, input integer wait_time);
-    $display("head cnt %d", head_count);
+    //$display("head cnt %d", head_count);
     if(size == 1)
+    begin
+        flit_num++;
+        if(flit_num == 1)
         begin
-        /*  
-            create_flit(HEADTAIL, curr_vc);
-            @(posedge clk)
-                begin
-                    write_flit(vc_new);
-                end
-        */
+            create_flit(HEADTAIL, vc);
+            write_flit(vc_new);
+            insert_not_compl <= 0;
         end
+        else    
+            //@(posedge clk)
+                valid_flit_cmd <= 0;
+    end
     else
+    begin
+        if(timer == 0 & insert_not_compl)
         begin
-            if(timer == 0 & insert_not_compl)
+            flit_num++;
+                                
+            if(flit_num == 1 | head_count > 0)
                 begin
-                    flit_num++;
-                                        
-                    if(flit_num == 1 | head_count > 0)
-                        begin
-                            create_flit(HEAD, vc);
-                            write_flit(vc_new);
-                            head_count--;
-                            head_done = 1;
-                        end
-                    else
-                    begin
-                        head_count = 0;
-                        if (flit_num == size)
-                        begin
-                            create_flit(TAIL, vc);
-                            write_flit(vc_new);
-                            insert_not_compl <= 0; // Deassert completion flag
-                        end
-                    
-                        else
-                        begin
-                            create_flit(BODY, vc);
-                            write_flit(vc_new);
-                        end
-                    end
-                    timer = wait_time; // reset timer
+                    create_flit(HEAD, vc);
+                    write_flit(vc_new);
+                    head_count--;
+                    head_done = 1;
                 end
             else
+            begin
+                head_count = 0;
+                if (flit_num == size)
                 begin
-                    valid_flit_cmd <= 0;
-                    if(timer > 0)
-                        timer--;
+                    create_flit(TAIL, vc);
+                    write_flit(vc_new);
+                    insert_not_compl <= 0; // Deassert completion flag
                 end
+            
+                else
+                begin
+                    create_flit(BODY, vc);
+                    write_flit(vc_new);
+                end
+            end
+            timer = wait_time; // reset timer
         end
+        else
+        begin
+            valid_flit_cmd <= 0;
+            if(timer > 0)
+                timer--;
+        end
+    end
     endtask
 
     /*
@@ -333,6 +340,7 @@ module tb_input_port #(
                     valid_sel_cmd   <= 1;
                     vc_sel_cmd      <= vc;
                 end
+                
                 @(negedge clk)
                 begin
                     check_flits(vc);
@@ -348,7 +356,7 @@ module tb_input_port #(
     */  
     task commandIP(input logic [VC_SIZE-1:0] vc, input integer va_time, input integer sa_time);
         
-        vc_valid_cmd    <= 0;
+        vc_valid_cmd <= 0;
         
         if(total_time == va_time) //VA phase
         begin
