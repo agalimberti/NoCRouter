@@ -15,7 +15,8 @@ module input_block #(
     input_block2switch_allocator.input_block sa_if,
     input_block2vc_allocator.input_block va_if,
     output logic [VC_NUM-1:0] on_off_o [PORT_NUM-1:0],
-    output logic [VC_NUM-1:0] vc_allocatable_o[ PORT_NUM-1:0]
+    output logic [VC_NUM-1:0] vc_allocatable_o [PORT_NUM-1:0],
+    output logic [VC_NUM-1:0] error_o [PORT_NUM-1:0]
 );
     
     logic [VC_NUM-1:0] is_full [PORT_NUM-1:0];
@@ -51,7 +52,8 @@ module input_block #(
                 .vc_request_o(va_if.vc_request[ip]),
                 .out_port_o(out_port[ip]),
                 .is_full_o(is_full[ip]),
-                .is_empty_o(is_empty[ip])
+                .is_empty_o(is_empty[ip]),
+                .error_o(error_o[ip])
             );
         end
     endgenerate
