@@ -66,6 +66,7 @@ module tb_vc_allocator #(
         initialize();
         clear_reset();
         test();
+        $display("[ALLOCATOR] PASSED");
         #15 $finish;
     end 
 
@@ -202,8 +203,8 @@ module tb_vc_allocator #(
         begin
             if(vc_new_generated[j]!==vc_new_o[j])
             begin
-            $display("[ALLOCATOR] FAILED VC NEW   time %d,  j %d, %d, %d", $time, j, vc_new_generated[j], vc_new_o[j]); 
-            #5 finish;
+            $display("[ALLOCATOR] FAILED");
+            #5 $finish;
             end       
         end
 
@@ -212,7 +213,7 @@ module tb_vc_allocator #(
             if(vc_valid_generated[j]!==vc_valid_o[j])
             begin
             $display("[ALLOCATOR] FAILED");
-            #5 finish;
+            #5 $finish;
             end
         end
     endtask
