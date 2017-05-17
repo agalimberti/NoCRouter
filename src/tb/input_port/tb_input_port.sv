@@ -11,7 +11,7 @@ module tb_input_port #(
 
     //TESTBENCH
     flit_t flit_written;
-    flit_t flit_queue[$];
+    flit_t flit_queue[VC_NUM][$];
     flit_t flit_read;
     int num_op, pkt_size, flit_num, timer, flit_to_read, flit_to_read_next, total_time, multiple_head, head_count;
     logic insert_not_compl, va_done, head_done;
@@ -147,13 +147,13 @@ module tb_input_port #(
     endtask
 
     // Write flit into the DUT module
-    task write_flit(input logic [VC_SIZE-1:0] vc_new);
+    task write_flit(input logic [VC_SIZE-1:0] vc, input logic [VC_SIZE-1:0] vc_new);
         begin
             valid_flit_cmd  <= 1;
             data_cmd        <= flit_written;
         end
         num_op++;
-        push_flit(vc_new);
+        push_flit(vc, vc_new);
     endtask
 
     /*
@@ -161,13 +161,13 @@ module tb_input_port #(
     In particular, the push operation is done if the HEAD flit hasn't been inserted yet or
     the flit to insert is not an HEAD one (head_count==0).
     */
-    task push_flit(input logic [VC_SIZE-1:0] vc_new);
+    task push_flit(input logic [VC_SIZE-1:0] vc, input logic [VC_SIZE-1:0] vc_new);
        
         flit_written.vc_id = vc_new;
         if( ~head_done | head_count == 0)
         begin
             $display("push %d", $time);
-            flit_queue.push_back(flit_written);
+            flit_queue[vc].push_back(flit_written);
             flit_to_read_next++;
         end
     endtask
@@ -201,7 +201,7 @@ module tb_input_port #(
         begin
             valid_sel_cmd <= 0;
             create_flit(BODY, 0);
-            write_flit(0);
+            write_flit(0, 0);
         end
         @(posedge clk)
         begin
@@ -213,7 +213,7 @@ module tb_input_port #(
         begin
             valid_sel_cmd <= 0;
             create_flit(TAIL, 0);
-            write_flit(0);
+            write_flit(0, 0);
         end
         @(posedge clk)
         begin
@@ -278,7 +278,7 @@ module tb_input_port #(
         if(flit_num == 1)
         begin
             create_flit(HEADTAIL, vc);
-            write_flit(vc_new);
+            write_flit(vc, vc_new);
             insert_not_compl <= 0;
         end
         else    
@@ -294,7 +294,7 @@ module tb_input_port #(
             if(flit_num == 1 | head_count > 0)
                 begin
                     create_flit(HEAD, vc);
-                    write_flit(vc_new);
+                    write_flit(vc, vc_new);
                     head_count--;
                     head_done = 1;
                 end
@@ -304,14 +304,14 @@ module tb_input_port #(
                 if (flit_num == size)
                 begin
                     create_flit(TAIL, vc);
-                    write_flit(vc_new);
+                    write_flit(vc, vc_new);
                     insert_not_compl <= 0; // Deassert completion flag
                 end
             
                 else
                 begin
                     create_flit(BODY, vc);
-                    write_flit(vc_new);
+                    write_flit(vc, vc_new);
                 end
             end
             timer = wait_time; // reset timer
@@ -335,7 +335,7 @@ module tb_input_port #(
             num_op++;
             flit_to_read_next--;
             begin
-                flit_read = flit_queue.pop_front();
+                flit_read = flit_queue[vc].pop_front();
                 begin
                     valid_sel_cmd   <= 1;
                     vc_sel_cmd      <= vc;
