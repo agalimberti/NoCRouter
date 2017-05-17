@@ -13,8 +13,9 @@ module tb_input_port #(
     flit_t flit_written;
     flit_t flit_queue[VC_NUM][$];
     flit_t flit_read;
-    int num_op, pkt_size, flit_num, timer, flit_to_read, flit_to_read_next, total_time, multiple_head, head_count;
-    logic insert_not_compl, va_done, head_done;
+    int num_op, timer, total_time;
+    int pkt_size[VC_NUM], flit_num[VC_NUM], flit_to_read[VC_NUM], flit_to_read_next[VC_NUM], multiple_head[VC_NUM], head_count[VC_NUM];
+    logic [VC_NUM-1:0] insert_not_compl, va_done, head_done;
     logic [VC_SIZE-1:0] vc_num, vc_new;
 
     //INPUT PORT
@@ -72,34 +73,38 @@ module tb_input_port #(
         */
         
         // Standard 4 flits packet
-        multiple_head = 0;
-        pkt_size = 4;
+        
         vc_num = {VC_SIZE{$random}};
         vc_new = {VC_SIZE{$random}};
-        test(vc_num, vc_new, pkt_size, 0, 2, 2);
+        multiple_head[vc_num] = 0;
+        pkt_size[vc_num] = 4;
+        test(vc_num, vc_new, pkt_size[vc_num], 0, 2, 2);
         
         // Standard packet, 4 flits, with delay between them
-        test(vc_num, vc_new, pkt_size, 2, 2, 1);
+        test(vc_num, vc_new, pkt_size[vc_num], 2, 2, 1);
         
         // No BODY flits packet
-        pkt_size = 2;
         vc_num = {VC_SIZE{$random}};
         vc_new = {VC_SIZE{$random}};
-        test(vc_num, vc_new, pkt_size, 0, 1, 0);
+        pkt_size[vc_num] = 2;
+        test(vc_num, vc_new, pkt_size[vc_num], 0, 1, 0);
 
         // Long packet (exceeds buffer length)
         test(vc_num, vc_new, 16, 0, 1, 0);
         
         // Packet with multiple HEAD flits
-        multiple_head = 3;
+        multiple_head[vc_num] = 3;
         test(vc_num, vc_new, 6, 0, 1, 0);
         
         // Single flit packet
-        multiple_head = 0;
+        multiple_head[vc_num] = 0;
         test(vc_num, vc_new, 1, 0, 1, 1);
         
+        // vcs test
+        // TODO
+        
         // BODY & TAIL flits without HEAD flit
-        multiple_head = 0;
+        multiple_head[vc_num] = 0;
         noHead();
 
         #10 $finish;
@@ -164,11 +169,11 @@ module tb_input_port #(
     task push_flit(input logic [VC_SIZE-1:0] vc, input logic [VC_SIZE-1:0] vc_new);
        
         flit_written.vc_id = vc_new;
-        if( ~head_done | head_count == 0)
+        if( ~head_done[vc] | head_count[vc] == 0)
         begin
             $display("push %d", $time);
             flit_queue[vc].push_back(flit_written);
-            flit_to_read_next++;
+            flit_to_read_next[vc]++;
         end
     endtask
 
@@ -179,7 +184,7 @@ module tb_input_port #(
     */
     task check_flits(input logic [VC_SIZE-1:0] vc);
         //$display("*** %d, %d", is_empty_o[vc], flit_to_read);
-        if( (~(is_empty_o[vc])) | flit_to_read > 0)
+        if( (~(is_empty_o[vc])) | flit_to_read[vc] > 0)
         begin
             if(~(flit_read === flit_o))
             begin
@@ -239,24 +244,20 @@ module tb_input_port #(
     */
     task test(input logic [VC_SIZE-1:0] curr_vc, input logic [VC_SIZE-1:0] vc_new, input integer size, 
                 input integer wait_time, input integer va_time, input integer sa_time);
-        flit_num            = 0;
-        timer               = 0;
-        flit_to_read        = 0;
-        insert_not_compl    = 1;
-        total_time          = 0;
-        head_done           = 0;
-        head_count          = multiple_head;
+        
+        head_count[curr_vc] = multiple_head[curr_vc];
+        init_test();
 
         $display("Packet size: %d", size);
-        while(flit_to_read > 0 | insert_not_compl == 1) @(posedge clk)
+        while(flit_to_read[curr_vc] > 0 | insert_not_compl[curr_vc] == 1) @(posedge clk)
         begin
-            $display("Time %d, total time:%d, to read %d, timer %d",$time,total_time, flit_to_read, timer);
+            $display("Time %d, total time:%d, to read %d, timer %d",$time,total_time, flit_to_read[curr_vc], timer);
             insertFlit(curr_vc, size, wait_time);
             commandIP(curr_vc, va_time, sa_time);
             readFlit(curr_vc);
             total_time++;
-            flit_to_read = flit_to_read_next;
-            $display("Time %d, total time:%d, to read %d, timer  %d",$time,total_time, flit_to_read, timer);
+            flit_to_read[curr_vc] = flit_to_read_next[curr_vc];
+            $display("Time %d, total time:%d, to read %d, timer  %d",$time,total_time, flit_to_read[curr_vc], timer);
         end
         
         @(posedge clk)
@@ -274,12 +275,12 @@ module tb_input_port #(
     //$display("head cnt %d", head_count);
     if(size == 1)
     begin
-        flit_num++;
-        if(flit_num == 1)
+        flit_num[vc]++;
+        if(flit_num[vc] == 1)
         begin
             create_flit(HEADTAIL, vc);
             write_flit(vc, vc_new);
-            insert_not_compl <= 0;
+            insert_not_compl[vc] <= 0;
         end
         else    
             //@(posedge clk)
@@ -287,25 +288,25 @@ module tb_input_port #(
     end
     else
     begin
-        if(timer == 0 & insert_not_compl)
+        if(timer == 0 & insert_not_compl[vc])
         begin
-            flit_num++;
+            flit_num[vc]++;
                                 
-            if(flit_num == 1 | head_count > 0)
+            if(flit_num[vc] == 1 | head_count[vc] > 0)
                 begin
                     create_flit(HEAD, vc);
                     write_flit(vc, vc_new);
-                    head_count--;
-                    head_done = 1;
+                    head_count[vc]--;
+                    head_done[vc] = 1;
                 end
             else
             begin
-                head_count = 0;
-                if (flit_num == size)
+                head_count[vc] = 0;
+                if (flit_num[vc] == size)
                 begin
                     create_flit(TAIL, vc);
                     write_flit(vc, vc_new);
-                    insert_not_compl <= 0; // Deassert completion flag
+                    insert_not_compl[vc] <= 0; // Deassert completion flag
                 end
             
                 else
@@ -330,10 +331,10 @@ module tb_input_port #(
     out of the queue and calls the check task (on the next fallingg edge of the clk). 
     */
     task readFlit(input logic [VC_SIZE-1:0] vc);
-        if(flit_to_read > 0 & va_done)
+        if(flit_to_read[vc] > 0 & va_done[vc])
         begin
             num_op++;
-            flit_to_read_next--;
+            flit_to_read_next[vc]--;
             begin
                 flit_read = flit_queue[vc].pop_front();
                 begin
@@ -360,7 +361,7 @@ module tb_input_port #(
         
         if(total_time == va_time) //VA phase
         begin
-            va_done             <= 1;
+            va_done[vc]             <= 1;
             vc_valid_cmd[vc]    <= 1;
             vc_new_cmd[vc]      <= vc_new;
         end
@@ -368,6 +369,25 @@ module tb_input_port #(
         begin
             valid_sel_cmd       <= 1;
             vc_sel_cmd          <= vc;
+        end
+    endtask
+    
+    /*
+    This task initializes all variables that are necessary for each test before it starts.
+    */
+    task init_test();
+        automatic int i;
+
+        total_time  = 0;
+        timer       = 0;
+
+        for(i = 0; i < VC_NUM; i++)
+        begin
+            head_done[i]        = 0;
+            flit_num[i]         = 0;
+            flit_to_read[i]     = 0;
+            flit_to_read_next[i]= 0;
+            insert_not_compl[i] = 1;
         end
     endtask
 
