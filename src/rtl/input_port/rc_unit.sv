@@ -50,10 +50,6 @@ module rc_unit #(
         else
         begin
             out_port_o = LOCAL;
-            /*
-            branch taken also if the inputs are non-specified (x),
-            hence the need for the usage of a validity bit
-            */
         end
     end
 
