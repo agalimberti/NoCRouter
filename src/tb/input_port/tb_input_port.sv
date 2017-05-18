@@ -15,10 +15,12 @@ module tb_input_port #(
     flit_t flit_read;
     
     int num_op, timer, total_time;
-    int pkt_size[VC_NUM], flit_num[VC_NUM], flit_to_read[VC_NUM], flit_to_read_next[VC_NUM], multiple_head[VC_NUM], head_count[VC_NUM], wait_time[VC_NUM], va_time[VC_NUM], sa_time[VC_NUM];
+    int pkt_size[VC_NUM], flit_num[VC_NUM], flit_to_read[VC_NUM], flit_to_read_next[VC_NUM], multiple_head[VC_NUM], 
+        head_count[VC_NUM], wait_time[VC_NUM], va_time[VC_NUM], sa_time[VC_NUM];
     
     logic [VC_NUM-1:0] insert_not_compl, va_done, head_done;
-    logic [VC_SIZE-1:0] vc_num, vc_new, test_vc_num;
+    logic [VC_SIZE-1:0] vc_num, test_vc_num;
+    logic [VC_NUM-1:0] [VC_SIZE-1:0] vc_new;
     
     //Enum defining test modes
     typedef enum {SINGLE,MULTI} test_mode_t;
@@ -75,79 +77,93 @@ module tb_input_port #(
 
         /*
         The parameters requested from the test task are the following ones:
-            test(test_mode, vc_num, vc_new)
+            test(vc_id)
         */
         
         /*
         Standard 4 flits packet
         */
+        test_mode = SINGLE;
         test_vc_num = {VC_SIZE{$random}};
+        vc_new[test_vc_num] = {VC_SIZE{$random}};
         multiple_head[test_vc_num] = 0;
         pkt_size[test_vc_num] = 4;
         wait_time[test_vc_num] = 0;
         va_time[test_vc_num] = 2;
         sa_time[test_vc_num] = 2;
-        test(test_vc_num, {VC_SIZE{$random}});
-        
+        test(test_vc_num);
         
         /*
         Standard packet, 4 flits, with delay between them
         */
+        test_mode = SINGLE;
+        vc_new[test_vc_num] = {VC_SIZE{$random}};
+        test_mode = SINGLE;
         wait_time[test_vc_num] = 2;
         va_time[test_vc_num] = 2;
         sa_time[test_vc_num] = 1;
-        test(test_vc_num, {VC_SIZE{$random}});
-        
+        test(test_vc_num);
         
         /*
         No BODY flits packet
         */
+        test_mode = SINGLE;
         test_vc_num = {VC_SIZE{$random}};
+        vc_new[test_vc_num] = {VC_SIZE{$random}};
         pkt_size[test_vc_num] = 2;
         wait_time[test_vc_num] = 0;
         va_time[test_vc_num] = 1;
         sa_time[test_vc_num] = 0;
-        test(test_vc_num, {VC_SIZE{$random}});
-
+        test(test_vc_num);
 
         /*
         Long packet (exceeds buffer length)
         */
+        test_mode = SINGLE;
+        vc_new[test_vc_num] = {VC_SIZE{$random}};
         pkt_size[test_vc_num] = 16;
         wait_time[test_vc_num] = 0;
         va_time[test_vc_num] = 1;
         sa_time[test_vc_num] = 0;
-        test(test_vc_num, {VC_SIZE{$random}});
+        test(test_vc_num);
         
         /*
         Packet with multiple HEAD flits
         */
+        test_mode = SINGLE;
         multiple_head[test_vc_num] = 3;
         pkt_size[test_vc_num] = 6;
         wait_time[test_vc_num] = 0;
         va_time[test_vc_num] = 1;
         sa_time[test_vc_num] = 0;
-        test(test_vc_num, {VC_SIZE{$random}});
-        
+        test(test_vc_num);
         
         /*
         Single flit packet
         */
+        test_mode = SINGLE;
         multiple_head[test_vc_num] = 0;
         pkt_size[test_vc_num] = 1;
         wait_time[test_vc_num] = 0;
         va_time[test_vc_num] = 1;
         sa_time[test_vc_num] = 1;
-        test(test_vc_num, {VC_SIZE{$random}});
+        test(test_vc_num);
         
         /*
-        vcs test
+        Multiple VCs test
         */
-        // TODO
-        
+        test_mode = MULTI;
+        multiple_head = {0,0};
+        pkt_size = {4,5};
+        wait_time = {0,0};
+        va_time = {1,1};
+        sa_time = {0,0};
+        //test();
+                
         /*
         BODY & TAIL flits without HEAD flit
         */
+        test_mode = SINGLE;
         multiple_head[test_vc_num] = 0;
         noHead();
 
@@ -212,7 +228,7 @@ module tb_input_port #(
     */
     task push_flit();
        
-        flit_written.vc_id = vc_new;
+        flit_written.vc_id = vc_new[vc_num];
         if( ~head_done[vc_num] | head_count[vc_num] == 0)
         begin
             $display("push %d", $time);
@@ -278,25 +294,24 @@ module tb_input_port #(
     
     Parameters
         curr_vc: is the vc identifier in which the packet will be inserted
-        vc_new: is the identifier of the vc that would be assigned from the VA
     */
-    task test(input logic [VC_SIZE-1:0] curr_vc, input logic [VC_SIZE-1:0] vc_n);
+    task test(input logic [VC_SIZE-1:0] curr_vc);
         
         vc_num = curr_vc;
-        vc_new = vc_n;
         head_count[vc_num] = multiple_head[curr_vc];
         init_test();
 
         $display("Packet size: %d", pkt_size[vc_num]);
         while(flit_to_read[vc_num] > 0 | insert_not_compl[vc_num] == 1) @(posedge clk)
         begin
-            $display("Time %d, total time:%d, to read %d, timer %d",$time,total_time, flit_to_read[vc_num], timer);
+            $display("Time %d, total time:%d, to read %d, timer %d",$time, total_time, flit_to_read[vc_num], timer);
             insertFlit();
             commandIP();
             readFlit();
+            
             total_time++;
             flit_to_read[vc_num] = flit_to_read_next[vc_num];
-            $display("Time %d, total time:%d, to read %d, timer  %d",$time,total_time, flit_to_read[vc_num], timer);
+            $display("Time %d, total time:%d, to read %d, timer  %d",$time,  total_time, flit_to_read[vc_num], timer);
         end
         
         @(posedge clk)
@@ -403,7 +418,7 @@ module tb_input_port #(
         begin
             va_done[vc_num]         <= 1;
             vc_valid_cmd[vc_num]    <= 1;
-            vc_new_cmd[vc_num]      <= vc_new;
+            vc_new_cmd[vc_num]      <= vc_new[vc_num];
         end
         else if(total_time > va_time[vc_num]+sa_time[vc_num]) //SA phase
         begin
