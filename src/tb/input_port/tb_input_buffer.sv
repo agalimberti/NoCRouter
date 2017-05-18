@@ -15,7 +15,10 @@ module tb_input_buffer #(
     logic write_i;
     logic [VC_SIZE-1:0] vc_new_i;
     logic vc_valid_i;
-
+    
+    logic req_check, req_check_next;
+    logic alloc_check, alloc_check_next;
+    
     port_t out_port_i;
     port_t out_port_o;
 
@@ -28,6 +31,8 @@ module tb_input_buffer #(
     wire is_full_o;
     wire is_empty_o;
     wire on_off_o;
+    wire vc_request_o;
+    wire vc_allocatable_o;
 
     input_buffer #(
         .BUFFER_SIZE(BUFFER_SIZE),
@@ -46,7 +51,9 @@ module tb_input_buffer #(
         .is_full_o(is_full_o),
         .is_empty_o(is_empty_o),
         .out_port_o(out_port_o),
-        .on_off_o(on_off_o)
+        .on_off_o(on_off_o),
+        .vc_request_o(vc_request_o),
+        .vc_allocatable_o(vc_allocatable_o)
     );
 
     /*
@@ -68,6 +75,49 @@ module tb_input_buffer #(
 
     always #5 clk = ~clk;
 
+    always_ff @(posedge clk, posedge rst)
+    begin
+        if(rst)
+        begin
+            req_check   <= 0;
+            alloc_check <= 0;
+        end
+        else
+        begin
+            req_check   <= req_check_next;
+            alloc_check <= alloc_check_next;
+            
+            if(req_check != vc_request_o)
+            begin
+                $display("ERROR: vc_request_o %d", $time);
+                $finish;   
+            end
+            
+            if(alloc_check != vc_allocatable_o)
+            begin
+                $display("ERROR: vc_allocatable_o %d", $time);
+                $finish;   
+            end  
+        end
+            
+    end
+    
+    always_comb
+    begin
+        req_check_next      = req_check;
+        alloc_check_next    = alloc_check;  
+             
+        if(data_i.flit_label == HEAD & is_empty_o)
+            req_check_next = 1;
+        if(vc_valid_i == 1)
+            req_check_next = 0;
+            
+        if(data_o.flit_label == TAIL)
+            alloc_check_next = 1;
+        if(alloc_check & is_empty_o)
+            alloc_check_next = 0;
+    end
+    
     task read_flit();
         /*
         checks whether the buffer is empty or not and

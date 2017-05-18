@@ -21,58 +21,37 @@ module tb_input_port #(
     logic valid_flit_cmd;
     logic rst;
     logic clk;
-    logic [VC_NUM-1:0] on_off_o;
-
-    //CROSSBAR MOCK
-    flit_t flit_o;
-
-    //SWITCH ALLOCATOR MOCK
-    port_t [VC_NUM-1 : 0] out_port_o;
     logic [VC_SIZE-1 : 0] vc_sel_cmd;
-    logic valid_sel_cmd;
-
-    //VIRTUAL CHANNEL ALLOCATOR MOCK
-    logic [VC_NUM-1:0] [VC_SIZE-1:0] vc_new_cmd;
+    logic [VC_SIZE-1:0] vc_new_cmd [VC_NUM-1:0];
     logic [VC_NUM-1:0] vc_valid_cmd;
-
-    //INTERFACES INSTANTIATION
-    input_port2crossbar ip2xbar_if();
-    input_port2switch_allocator ip2sa_if();
-    input_port2vc_allocator ip2va_if();
+    logic valid_sel_cmd;
+    flit_t flit_o;
+    logic [VC_NUM-1:0] on_off_o;
+    logic [VC_NUM-1:0] vc_allocatable_o;
+    logic [VC_NUM-1:0] vc_request_o;
+    port_t [VC_NUM-1:0] out_port_o;
 
     //DUT INSTANTIATION
     input_port #(
         .BUFFER_SIZE(BUFFER_SIZE),
-        .PIPELINE_DEPTH(PIPELINE_DEPTH)
+        .PIPELINE_DEPTH(PIPELINE_DEPTH),
+        .X_CURRENT(X_CURRENT),
+        .Y_CURRENT(Y_CURRENT)
     )
     input_port (
-        .data_i(data_cmd),
-        .valid_flit_i(valid_flit_cmd),
-        .rst(rst),
-        .clk(clk),
-        .crossbar_if(ip2xbar_if.input_port),
-        .sa_if(ip2sa_if.input_port),
-        .va_if(ip2va_if.input_port),
-        .on_off_o(on_off_o)
-    );
-
-    //MOCK MODULES INSTANTIATION
-    xbar_mock xbar_mock (
-        .ip_if(ip2xbar_if.crossbar),
-        .flit_o(flit_o)
-    );
-
-    sa_mock sa_mock (
-        .ip_if(ip2sa_if.switch_allocator),
-        .out_port_o(out_port_o),
-        .vc_sel_i(vc_sel_cmd),
-        .valid_sel_i(valid_sel_cmd)
-    );
-
-    va_mock va_mock (
-        .ip_if(ip2va_if.vc_allocator),
-        .vc_new_i(vc_new_cmd),
-        .vc_valid_i(vc_valid_cmd)
+       .data_i(data_cmd),
+       .valid_flit_i(valid_flit_cmd),
+       .rst(rst),
+       .clk(clk),
+       .vc_sel_i(vc_sel_cmd),
+       .vc_new_i(vc_new_cmd),
+       .vc_valid_i(vc_valid_cmd),
+       .valid_sel_i(valid_sel_cmd),
+       .flit_o(flit_o),
+       .on_off_o(on_off_o),
+       .vc_allocatable_o(vc_allocatable_o),
+       .vc_request_o(vc_request_o),
+       .out_port_o(out_port_o)
     );
 
     initial
@@ -84,7 +63,6 @@ module tb_input_port #(
         num_op = 0;
         for(pkt_num=0, vc_num=0; pkt_num<2; pkt_num++,vc_num++)
         begin
-//            vc_new = 0;
             $display("%d", vc_num);
             vc_new = {VC_SIZE{$random}};
             insert_packet(vc_num, vc_new);  
@@ -105,10 +83,11 @@ module tb_input_port #(
         clk             <= 0;
         rst             = 1;
         valid_flit_cmd  = 0;
-        valid_sel_cmd   = 0;
         vc_sel_cmd      = 0;
         vc_valid_cmd    = 0;
-        vc_new_cmd      = 0;
+        valid_sel_cmd   = 0;
+        for(int i=0; i<VC_NUM; i++)
+            vc_new_cmd[i] = 0;
     endtask
     
     task create_flit(input flit_label_t lab, input logic [VC_SIZE-1:0] curr_vc);
@@ -215,46 +194,4 @@ module tb_input_port #(
         else
             $display("[READ] PASSED %d", $time);
     endtask
-endmodule
-
-module xbar_mock #()(
-    input_port2crossbar.crossbar ip_if,
-    output flit_t flit_o
-);
-
-    always_comb
-    begin
-        flit_o = ip_if.flit;
-    end
-
-endmodule
-
-module sa_mock #()(
-    input_port2switch_allocator.switch_allocator ip_if,
-    output port_t [VC_NUM-1 : 0] out_port_o,
-    input [VC_SIZE-1 : 0] vc_sel_i,
-    input valid_sel_i
-);
-
-    always_comb
-    begin
-        ip_if.vc_sel    = vc_sel_i;
-        ip_if.valid_sel = valid_sel_i;
-        out_port_o      = ip_if.out_port;
-    end
-
-endmodule
-
-module va_mock #()(
-    input_port2vc_allocator.vc_allocator ip_if,
-    input [VC_NUM-1:0] [VC_SIZE-1:0] vc_new_i,
-    input [VC_NUM-1:0] vc_valid_i
-);
-
-    always_comb
-    begin
-        ip_if.vc_new    = vc_new_i;
-        ip_if.vc_valid  = vc_valid_i;
-    end
-
 endmodule
