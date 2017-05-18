@@ -13,10 +13,15 @@ module tb_input_port #(
     flit_t flit_written;
     flit_t flit_queue[VC_NUM][$];
     flit_t flit_read;
+    
     int num_op, timer, total_time;
     int pkt_size[VC_NUM], flit_num[VC_NUM], flit_to_read[VC_NUM], flit_to_read_next[VC_NUM], multiple_head[VC_NUM], head_count[VC_NUM];
+    
     logic [VC_NUM-1:0] insert_not_compl, va_done, head_done;
-    logic [VC_SIZE-1:0] vc_num, vc_new;
+    logic [VC_SIZE-1:0] vc_num, vc_new, test_vc_num;
+    
+    //Enum defining test modes
+    typedef enum {SINGLE,MULTI} test_mode_t;
 
     //INPUT PORT
     flit_t data_cmd;
@@ -73,38 +78,35 @@ module tb_input_port #(
         */
         
         // Standard 4 flits packet
-        
-        vc_num = {VC_SIZE{$random}};
-        vc_new = {VC_SIZE{$random}};
-        multiple_head[vc_num] = 0;
-        pkt_size[vc_num] = 4;
-        test(vc_num, vc_new, pkt_size[vc_num], 0, 2, 2);
+        test_vc_num = {VC_SIZE{$random}};
+        multiple_head[test_vc_num] = 0;
+        pkt_size[test_vc_num] = 4;
+        test(SINGLE, test_vc_num, {VC_SIZE{$random}}, pkt_size[test_vc_num], 0, 2, 2);
         
         // Standard packet, 4 flits, with delay between them
-        test(vc_num, vc_new, pkt_size[vc_num], 2, 2, 1);
+        test(SINGLE, test_vc_num, {VC_SIZE{$random}}, pkt_size[test_vc_num], 2, 2, 1);
         
         // No BODY flits packet
-        vc_num = {VC_SIZE{$random}};
-        vc_new = {VC_SIZE{$random}};
-        pkt_size[vc_num] = 2;
-        test(vc_num, vc_new, pkt_size[vc_num], 0, 1, 0);
+        test_vc_num = {VC_SIZE{$random}};
+        pkt_size[test_vc_num] = 2;
+        test(SINGLE, test_vc_num, {VC_SIZE{$random}}, pkt_size[test_vc_num], 0, 1, 0);
 
         // Long packet (exceeds buffer length)
-        test(vc_num, vc_new, 16, 0, 1, 0);
+        test(SINGLE, test_vc_num, {VC_SIZE{$random}}, 16, 0, 1, 0);
         
         // Packet with multiple HEAD flits
-        multiple_head[vc_num] = 3;
-        test(vc_num, vc_new, 6, 0, 1, 0);
+        multiple_head[test_vc_num] = 3;
+        test(SINGLE, test_vc_num, {VC_SIZE{$random}}, 6, 0, 1, 0);
         
         // Single flit packet
-        multiple_head[vc_num] = 0;
-        test(vc_num, vc_new, 1, 0, 1, 1);
+        multiple_head[test_vc_num] = 0;
+        test(SINGLE, test_vc_num, {VC_SIZE{$random}}, 1, 0, 1, 1);
         
         // vcs test
         // TODO
         
         // BODY & TAIL flits without HEAD flit
-        multiple_head[vc_num] = 0;
+        multiple_head[test_vc_num] = 0;
         noHead();
 
         #10 $finish;
@@ -127,7 +129,7 @@ module tb_input_port #(
         vc_sel_cmd      = 0;
         vc_valid_cmd    = 0;
         valid_sel_cmd   = 0;
-        for(int i=0; i < VC_NUM; i++)
+        for(int i = 0; i < VC_NUM; i++)
             vc_new_cmd[i] = 0;
     endtask
 
@@ -152,13 +154,13 @@ module tb_input_port #(
     endtask
 
     // Write flit into the DUT module
-    task write_flit(input logic [VC_SIZE-1:0] vc, input logic [VC_SIZE-1:0] vc_new);
+    task write_flit(input logic [VC_SIZE-1:0] vc, input logic [VC_SIZE-1:0] vc_n);
         begin
             valid_flit_cmd  <= 1;
             data_cmd        <= flit_written;
         end
         num_op++;
-        push_flit(vc, vc_new);
+        push_flit(vc, vc_n);
     endtask
 
     /*
@@ -166,9 +168,9 @@ module tb_input_port #(
     In particular, the push operation is done if the HEAD flit hasn't been inserted yet or
     the flit to insert is not an HEAD one (head_count==0).
     */
-    task push_flit(input logic [VC_SIZE-1:0] vc, input logic [VC_SIZE-1:0] vc_new);
+    task push_flit(input logic [VC_SIZE-1:0] vc, input logic [VC_SIZE-1:0] vc_n);
        
-        flit_written.vc_id = vc_new;
+        flit_written.vc_id = vc_n;
         if( ~head_done[vc] | head_count[vc] == 0)
         begin
             $display("push %d", $time);
@@ -242,9 +244,11 @@ module tb_input_port #(
     IMPORTANT: sa_time is considered in cycles after va_time.
     (E.g.: sa_time=0 means that the sa will be executed the next cycle after the va)
     */
-    task test(input logic [VC_SIZE-1:0] curr_vc, input logic [VC_SIZE-1:0] vc_new, input integer size, 
+    task test(test_mode_t test_mode, input logic [VC_SIZE-1:0] curr_vc, input logic [VC_SIZE-1:0] vc_n, input integer size, 
                 input integer wait_time, input integer va_time, input integer sa_time);
         
+        vc_num = curr_vc;
+        vc_new = vc_n;
         head_count[curr_vc] = multiple_head[curr_vc];
         init_test();
 
@@ -283,8 +287,7 @@ module tb_input_port #(
             insert_not_compl[vc] <= 0;
         end
         else    
-            //@(posedge clk)
-                valid_flit_cmd <= 0;
+            valid_flit_cmd <= 0;
     end
     else
     begin
