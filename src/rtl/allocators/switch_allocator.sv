@@ -113,7 +113,7 @@ module switch_allocator #(
                     begin
                         if(granted_vc[in][vc])
                         begin
-                            ib_if.vc_sel[out] = ib_if.downstream_vc[in][vc];
+                            ib_if.vc_sel[in] = vc;
                         end
                     end
                     ib_if.valid_sel[in] = 1'b1;
