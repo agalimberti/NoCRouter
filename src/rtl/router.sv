@@ -1,6 +1,7 @@
 import noc_params::*;
 
 module router #(
+    bit SPECULATION = 1,
     parameter VC_TOTAL = 10,
     parameter PORT_NUM = 5,
     parameter VC_NUM = 2,
@@ -119,30 +120,69 @@ module router #(
         .data_o(data_out)
     );
 
-    vc_allocator #(
-        .VC_TOTAL(VC_TOTAL),
-        .PORT_NUM(PORT_NUM),
-        .VC_NUM(VC_NUM)
-    )
-    vc_allocator (
-        .rst(rst),
-        .clk(clk),
-        .idle_downstream_vc_i(is_allocatable_in),
-        .ib_if(ib2va_if)
-    );
+    generate
+        if(SPECULATION)
+        begin: speculative
+            vc_allocator2speculative_switch_allocator va2ssa_if();
 
-    switch_allocator #(
-        .VC_TOTAL(VC_TOTAL),
-        .PORT_NUM(PORT_NUM),
-        .VC_NUM(VC_NUM)
-    )
-    switch_allocator (
-        .rst(rst),
-        .clk(clk),
-        .on_off_i(on_off_in),
-        .ib_if(ib2sa_if),
-        .xbar_if(sa2xbar_if),
-        .valid_flit_o(valid_flit_out)
-    );
+            speculative_switch_allocator #(
+                .VC_TOTAL(VC_TOTAL),
+                .PORT_NUM(PORT_NUM),
+                .VC_NUM(VC_NUM)
+            )
+            switch_allocator (
+                .rst(rst),
+                .clk(clk),
+                .on_off_i(on_off_in),
+                .ib_if(ib2sa_if),
+                .xbar_if(sa2xbar_if),
+                .va_if(va2ssa_if),
+                .valid_flit_o(valid_flit_out)
+            );
+
+            vc_allocator_for_spec #(
+                .VC_TOTAL(VC_TOTAL),
+                .PORT_NUM(PORT_NUM),
+                .VC_NUM(VC_NUM)
+            )
+            vc_allocator (
+                .rst(rst),
+                .clk(clk),
+                .idle_downstream_vc_i(is_allocatable_in),
+                .ib_if(ib2va_if),
+                .ssa_if(va2ssa_if)
+            );
+
+        end
+        else
+        begin: non_speculative
+            non_speculative_switch_allocator #(
+                .VC_TOTAL(VC_TOTAL),
+                .PORT_NUM(PORT_NUM),
+                .VC_NUM(VC_NUM)
+            )
+            switch_allocator (
+                .rst(rst),
+                .clk(clk),
+                .on_off_i(on_off_in),
+                .ib_if(ib2sa_if),
+                .xbar_if(sa2xbar_if),
+                .valid_flit_o(valid_flit_out)
+            );
+            
+            vc_allocator #(
+                .VC_TOTAL(VC_TOTAL),
+                .PORT_NUM(PORT_NUM),
+                .VC_NUM(VC_NUM)
+            )
+            vc_allocator (
+                .rst(rst),
+                .clk(clk),
+                .idle_downstream_vc_i(is_allocatable_in),
+                .ib_if(ib2va_if)
+            );
+
+        end
+    endgenerate
 
 endmodule
