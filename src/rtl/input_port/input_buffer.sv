@@ -134,6 +134,8 @@ module input_buffer #(
                     write_cmd = 1;
                 if(write_i & data_i.flit_label == TAIL)
                     end_packet_next = 1;
+                if(read_i) //makes it possible to read for speculation!!!
+                    read_cmd = 1;
             end
 
             SA:
