@@ -23,6 +23,11 @@ module input_block #(
     assign va_if.out_port = out_port;
     assign sa_if.out_port = out_port;
 
+    logic [VC_NUM-1:0] vc_request [PORT_NUM-1:0];
+
+    assign va_if.vc_request = vc_request;
+    assign sa_if.vc_request = vc_request;    
+
     genvar ip;
     generate
         for(ip=0; ip<PORT_NUM; ip++)
@@ -45,7 +50,7 @@ module input_block #(
                 .flit_o(crossbar_if.flit[ip]),
                 .on_off_o(on_off_o[ip]),
                 .vc_allocatable_o(vc_allocatable_o[ip]),
-                .vc_request_o(va_if.vc_request[ip]),
+                .vc_request_o(vc_request[ip]),
                 .switch_request_o(sa_if.switch_request[ip]),
                 .downstream_vc_o(sa_if.downstream_vc[ip]),
                 .out_port_o(out_port[ip])
