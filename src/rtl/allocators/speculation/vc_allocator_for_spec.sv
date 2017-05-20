@@ -28,8 +28,7 @@ module vc_allocator_for_spec #(
         .grants_o(grants)
     );
 
-    //added these lines for the speculation !!!
-    assign ssa_if.vc_new = ib_if.vc_new;
+    //added this line for the speculation !!!
     assign ssa_if.vc_valid = ib_if.vc_valid;
 
     /*
