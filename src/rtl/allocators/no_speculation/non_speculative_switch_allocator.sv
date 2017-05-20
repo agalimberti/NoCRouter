@@ -1,6 +1,6 @@
 import noc_params::*;
 
-module switch_allocator #(
+module non_speculative_switch_allocator #(
     parameter VC_TOTAL = 10,
     parameter PORT_NUM = 5,
     parameter VC_NUM = 2
@@ -13,6 +13,11 @@ module switch_allocator #(
     output logic valid_flit_o [PORT_NUM-1:0]
 );
 
+    /*
+    WARNING: ib_if.vc_request input is unused, it has
+    been added to the interface for the speculation only
+    */
+
     logic [VC_NUM-1:0] input_port_req [PORT_NUM-1:0];
     logic [VC_NUM-1:0] granted_vc [PORT_NUM-1:0];
 
@@ -21,7 +26,7 @@ module switch_allocator #(
 
     /*
     For each input port, a corresponding VC_NUM-input Round-Robin
-    Arbiter selects a winner among all active VCs;
+    Arbiter selects a winner among all active VCs.
     */
     genvar port_arb;
     generate
@@ -113,7 +118,8 @@ module switch_allocator #(
                     begin
                         if(granted_vc[in][vc])
                         begin
-                            ib_if.vc_sel[out] = ib_if.downstream_vc[in][vc];
+                            ib_if.vc_sel[in] = vc;
+                            break;
                         end
                     end
                     ib_if.valid_sel[in] = 1'b1;
