@@ -67,8 +67,7 @@ module tb_vc_allocator #(
         clear_reset();
         test_cumulative_requests();
         test_same_port_requests();
-        /*
-        test_2_cycle_reset();*/
+        test_exhaust_vc_and_return_availbility();
         $display("[ALLOCATOR] PASSED");
         #15 $finish;
     end 
@@ -122,8 +121,30 @@ module tb_vc_allocator #(
             vc_to_allocate_i = {VC_TOTAL{1'b1}};
             test_check();
         end
-        
     endtask
+    
+    task test_exhaust_vc_and_return_availbility();
+        for(int j = 0; j < PORT_NUM; j++)
+        begin
+            @(posedge clk)
+            idle_downstream_vc_i = {VC_TOTAL{1'b0}};
+            for (int i = 0; i < VC_TOTAL; i++)
+                out_port_i[i] = ports[$urandom_range(4,0)];
+            vc_to_allocate_i = {VC_TOTAL{1'b1}};
+            test_check();
+        end
+        
+        for(int j = 0; j < PORT_NUM; j++)
+        begin
+            @(posedge clk)
+            idle_downstream_vc_i = {VC_TOTAL{1'b1}};
+            for (int i = 0; i < VC_TOTAL; i++)
+                out_port_i[i] = ports[$urandom_range(4,0)];
+            vc_to_allocate_i = {VC_TOTAL{1'b1}};
+            test_check();
+        end
+    endtask
+    
     
     task test_check();
         available_vc_prox = available_vc_curr;
