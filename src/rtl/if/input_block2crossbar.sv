@@ -1,10 +1,10 @@
 import noc_params::*;
 
-interface input_port2crossbar;
+interface input_block2crossbar;
 
-    flit_t flit;
+    flit_t flit [PORT_NUM-1:0];
 
-    modport input_port (
+    modport input_block (
         output flit
     );
 

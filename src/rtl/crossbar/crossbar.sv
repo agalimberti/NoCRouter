@@ -1,15 +1,11 @@
 import noc_params::*;
 
 module crossbar #(
-    parameter INPUT_NUM=2,
-    parameter OUTPUT_NUM=2
 )(
-    input flit_t data_i [INPUT_NUM-1:0],
-    input [SEL_SIZE-1:0] sel_i [OUTPUT_NUM-1:0],
-    output flit_t data_o [OUTPUT_NUM-1:0]
+    input_block2crossbar.crossbar ib_if,
+    switch_allocator2crossbar.crossbar sa_if,
+    output flit_t data_o [PORT_NUM-1:0]
 );
-
-    localparam [31:0] SEL_SIZE = $clog2(INPUT_NUM);
 
     /*
     Combinational logic:
@@ -18,9 +14,9 @@ module crossbar #(
     */
     always_comb
     begin
-        for(int j=0; j<OUTPUT_NUM; j++)
+        for(int ip = 0; ip < PORT_NUM; ip = ip + 1)
         begin
-            data_o[j] = data_i[sel_i[j]];
+            data_o[ip] = ib_if.flit[sa_if.input_vc_sel[ip]];
         end
     end
 
