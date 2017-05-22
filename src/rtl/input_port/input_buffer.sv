@@ -150,7 +150,7 @@ module input_buffer #(
                     write_cmd = 1;
                 end
 
-                if((write_i & (end_packet | data_i.flit_label == HEAD)) | read_i)
+                if((write_i & (end_packet | data_i.flit_label == HEAD | data_i.flit_label == HEADTAIL)) | read_i)
                 begin
                     error_next = 1;
                 end
@@ -162,7 +162,7 @@ module input_buffer #(
 
             SA:
             begin
-                if(read_i & data_o.flit_label == TAIL)
+                if(read_i & (data_o.flit_label == TAIL | data_o.flit_label == HEADTAIL))
                 begin
                     ss_next = IDLE;
                     vc_allocatable_next = 1;
