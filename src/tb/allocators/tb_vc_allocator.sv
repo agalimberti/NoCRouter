@@ -59,7 +59,14 @@ module tb_vc_allocator #(
         .vc_new_o(vc_new_o),
         .vc_valid_o(vc_valid_o)
     );
-    
+    /*
+    The testbench performs four different test:
+    1) Simulation of the basic tasks that the allocator has to perform, all the requests are cumulative
+    2) Simulation of a corner case: all the upstream vcs request the same port.
+    3) Simulation of a corner case: after all the request have been granted the downstream vc is not in idle, so all the resources have been 
+     exhausted, after that all the downstream vcs return in idle and the resources recover.
+    4) Simulation of a corner case: a reset is performed during the execution of the module and then normal tasks are executed.
+    */
     initial 
     begin
         dump_output();
@@ -103,7 +110,7 @@ module tb_vc_allocator #(
         curr_highest_priority_out = {VC_TOTAL{1'b0}};
         vc_to_allocate_i = {VC_TOTAL{1'b0}};
     endtask
-
+    /*First test the vc allocator is called to execute a number of basic tasks*/
     task test_cumulative_requests();
         repeat(10) @(posedge clk)
         begin
@@ -114,7 +121,9 @@ module tb_vc_allocator #(
             test_check();
         end
     endtask
-    
+    /*
+    Second test: all the upstream vcs request the same port
+    */
     task test_same_port_requests();
         for(int j = 0; j < PORT_NUM; j++)
         begin
@@ -126,7 +135,9 @@ module tb_vc_allocator #(
             test_check();
         end
     endtask
-    
+    /*
+    Third test all the downstream vc are not in idle (5clk) and then they return in idle again
+    */
     task test_exhaust_vc_and_return_availability();
         for(int j = 0; j < PORT_NUM; j++)
         begin
@@ -148,7 +159,9 @@ module tb_vc_allocator #(
             test_check();
         end
     endtask
-    
+    /*
+    Fourth and last test a reset is performed before the operations
+    */
     task test_reset();
         @(posedge clk, posedge rst)
             reset();   
@@ -162,7 +175,10 @@ module tb_vc_allocator #(
             test_check();
         end
     endtask
-
+    /*
+    The test simulates an internal separable input first allocator and the operations of the vc allocator
+    then checks that everything corresponds to the output
+    */
     task test_check();
         available_vc_prox = available_vc_curr;
         vc_valid_generated = {VC_TOTAL{1'b0}};
