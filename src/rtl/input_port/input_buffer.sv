@@ -4,7 +4,7 @@ module input_buffer #(
     parameter BUFFER_SIZE = 8,
     parameter PIPELINE_DEPTH = 5
 )(
-    input flit_t data_i,
+    input flit_novc_t data_i,
     input read_i,
     input write_i,
     input [VC_SIZE-1:0] vc_new_i,
@@ -33,7 +33,7 @@ module input_buffer #(
     logic vc_allocatable_next;
     logic error_next;
 
-    flit_t read_flit;
+    flit_novc_t read_flit;
 
     port_t out_port_next;
 
