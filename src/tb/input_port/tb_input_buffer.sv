@@ -28,6 +28,8 @@ module tb_input_buffer #(
     wire is_full_o;
     wire is_empty_o;
     wire on_off_o;
+    wire vc_request_o;
+    wire vc_allocatable_o;
 
     input_buffer #(
         .BUFFER_SIZE(BUFFER_SIZE),
@@ -46,7 +48,9 @@ module tb_input_buffer #(
         .is_full_o(is_full_o),
         .is_empty_o(is_empty_o),
         .out_port_o(out_port_o),
-        .on_off_o(on_off_o)
+        .on_off_o(on_off_o),
+        .vc_request_o(vc_request_o),
+        .vc_allocatable_o(vc_allocatable_o)
     );
 
     /*

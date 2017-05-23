@@ -1,10 +1,10 @@
 import noc_params::*;
 
 module crossbar #(
-    parameter INPUT_NUM=2,
-    parameter OUTPUT_NUM=2
+    parameter INPUT_NUM = PORT_NUM,
+    parameter OUTPUT_NUM = PORT_NUM
 )(
-    input flit_t data_i [INPUT_NUM-1:0],
+    input_block2crossbar.crossbar input_block_if,
     input [SEL_SIZE-1:0] sel_i [OUTPUT_NUM-1:0],
     output flit_t data_o [OUTPUT_NUM-1:0]
 );
@@ -18,9 +18,9 @@ module crossbar #(
     */
     always_comb
     begin
-        for(int j=0; j<OUTPUT_NUM; j++)
+        for(int ip = 0; ip < OUTPUT_NUM; ip = ip + 1)
         begin
-            data_o[j] = data_i[sel_i[j]];
+            data_o[j] = input_block_if.flit[sel_i[ip]];
         end
     end
 
