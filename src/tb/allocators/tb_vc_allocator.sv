@@ -59,13 +59,23 @@ module tb_vc_allocator #(
         .vc_new_o(vc_new_o),
         .vc_valid_o(vc_valid_o)
     );
-    
+    /*
+    The testbench performs four different test:
+    1) Simulation of the basic tasks that the allocator has to perform, all the requests are cumulative
+    2) Simulation of a corner case: all the upstream vcs request the same port.
+    3) Simulation of a corner case: after all the request have been granted the downstream vc is not in idle, so all the resources have been 
+     exhausted, after that all the downstream vcs return in idle and the resources recover.
+    4) Simulation of a corner case: a reset is performed during the execution of the module and then normal tasks are executed.
+    */
     initial 
     begin
         dump_output();
         initialize();
         clear_reset();
-        test();
+        test_cumulative_requests();
+        test_same_port_requests();
+        test_exhaust_vc_and_return_availability();
+        test_reset();
         $display("[ALLOCATOR] PASSED");
         #15 $finish;
     end 
@@ -78,36 +88,97 @@ module tb_vc_allocator #(
     endtask
 
     task clear_reset();
-        @(posedge clk);
-        rst <= 0;
+        begin
+            @(posedge clk);
+            rst <= 0;
+        end
     endtask
 
     task initialize();
-            clk <= 0;
-            rst  = 1;
-            available_vc_curr  = {VC_TOTAL{1'b1}};
-            for(int i=0; i < VC_TOTAL; i++)
-            begin
-                curr_highest_priority_in[i] = 0;
-                grants_in[i] = 0;
-                curr_highest_priority_out[i] = 0;
-                grants_out[i] = 0;
-            end
-            vc_valid_generated = {VC_TOTAL{1'b0}};
-            requests_cmd_i = {VC_TOTAL*VC_TOTAL{1'b0}};
+        clk <= 0;
+        rst  = 1;
+        available_vc_curr  = {VC_TOTAL{1'b1}};
+        curr_highest_priority_in = {VC_TOTAL{1'b0}};
+        curr_highest_priority_out = {VC_TOTAL{1'b0}};
+        vc_to_allocate_i = {VC_TOTAL{1'b0}};
     endtask
-
-    task test();
+    
+    task reset();
+        rst  = 1;
+        available_vc_curr  = {VC_TOTAL{1'b1}};
+        curr_highest_priority_in = {VC_TOTAL{1'b0}};
+        curr_highest_priority_out = {VC_TOTAL{1'b0}};
+        vc_to_allocate_i = {VC_TOTAL{1'b0}};
+    endtask
+    /*First test the vc allocator is called to execute a number of basic tasks*/
+    task test_cumulative_requests();
         repeat(10) @(posedge clk)
         begin
-            idle_downstream_vc_i = {PORT_NUM{$random}};
+            idle_downstream_vc_i = {VC_TOTAL{$random}};
             for(int i = 0; i < VC_TOTAL; i++)
                 out_port_i[i] = ports[$urandom_range(4,0)];
-            vc_to_allocate_i = {PORT_NUM{$random}};
+            vc_to_allocate_i = {VC_TOTAL{$random}};
             test_check();
         end
     endtask
-    
+    /*
+    Second test: all the upstream vcs request the same port
+    */
+    task test_same_port_requests();
+        for(int j = 0; j < PORT_NUM; j++)
+        begin
+            @(posedge clk)
+            idle_downstream_vc_i = {VC_TOTAL{1'b1}};
+            for (int i = 0; i < VC_TOTAL; i++)
+                out_port_i[i] = ports[j];
+            vc_to_allocate_i = {VC_TOTAL{1'b1}};
+            test_check();
+        end
+    endtask
+    /*
+    Third test all the downstream vc are not in idle (5clk) and then they return in idle again
+    */
+    task test_exhaust_vc_and_return_availability();
+        for(int j = 0; j < PORT_NUM; j++)
+        begin
+            @(posedge clk)
+            idle_downstream_vc_i = {VC_TOTAL{1'b0}};
+            for (int i = 0; i < VC_TOTAL; i++)
+                out_port_i[i] = ports[$urandom_range(4,0)];
+            vc_to_allocate_i = {VC_TOTAL{1'b1}};
+            test_check();
+        end
+        
+        for(int j = 0; j < PORT_NUM; j++)
+        begin
+            @(posedge clk)
+            idle_downstream_vc_i = {VC_TOTAL{1'b1}};
+            for (int i = 0; i < VC_TOTAL; i++)
+                out_port_i[i] = ports[$urandom_range(4,0)];
+            vc_to_allocate_i = {VC_TOTAL{1'b1}};
+            test_check();
+        end
+    endtask
+    /*
+    Fourth and last test a reset is performed before the operations
+    */
+    task test_reset();
+        @(posedge clk, posedge rst)
+            reset();   
+        clear_reset();
+        repeat(10) @(posedge clk)
+        begin
+            idle_downstream_vc_i = {VC_TOTAL{$random}};
+            for(int i = 0; i < VC_TOTAL; i++)
+                out_port_i[i] = ports[$urandom_range(4,0)];
+            vc_to_allocate_i = {VC_TOTAL{$random}};
+            test_check();
+        end
+    endtask
+    /*
+    The test simulates an internal separable input first allocator and the operations of the vc allocator
+    then checks that everything corresponds to the output
+    */
     task test_check();
         available_vc_prox = available_vc_curr;
         vc_valid_generated = {VC_TOTAL{1'b0}};
@@ -203,7 +274,7 @@ module tb_vc_allocator #(
         begin
             if(vc_new_generated[j]!==vc_new_o[j])
             begin
-            $display("[ALLOCATOR] FAILED");
+            $display("[ALLOCATOR] FAILED time: %d", $time);
             #5 $finish;
             end       
         end
@@ -212,7 +283,7 @@ module tb_vc_allocator #(
         begin
             if(vc_valid_generated[j]!==vc_valid_o[j])
             begin
-            $display("[ALLOCATOR] FAILED");
+            $display("[ALLOCATOR] FAILED time: %d", $time);
             #5 $finish;
             end
         end
