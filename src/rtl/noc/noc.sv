@@ -33,7 +33,7 @@ package noc_params;
 		union packed
 		{
 			head_data_t 		head_data;
-			body_tail_payload_t bt_pl;
+			logic [FLIT_DATA_SIZE-1 : 0] bt_pl;
 		} data;
 	} flit_t;
 
@@ -43,7 +43,7 @@ package noc_params;
         union packed
         {
             head_data_t head_data;
-            body_tail_payload_t bt_pl;
+            logic [FLIT_DATA_SIZE-1 : 0] bt_pl;
         } data;
     } flit_novc_t;
 
