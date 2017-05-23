@@ -5,7 +5,8 @@ module input_block #(
     parameter BUFFER_SIZE = 8,
     parameter PIPELINE_DEPTH = 5,
     parameter X_CURRENT = MESH_SIZE_X/2,
-    parameter Y_CURRENT = MESH_SIZE_Y/2
+    parameter Y_CURRENT = MESH_SIZE_Y/2,
+    bit SPECULATION = 0
 )(
     input flit_t data_i [PORT_NUM-1:0],
     input valid_flit_i [PORT_NUM-1:0],
@@ -40,7 +41,8 @@ module input_block #(
                 .BUFFER_SIZE(BUFFER_SIZE),
                 .PIPELINE_DEPTH(PIPELINE_DEPTH),
                 .X_CURRENT(X_CURRENT),
-                .Y_CURRENT(Y_CURRENT)
+                .Y_CURRENT(Y_CURRENT),
+                .SPECULATION(SPECULATION)
             )
             input_port (
                 .data_i(data_i[ip]),

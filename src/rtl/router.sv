@@ -1,7 +1,7 @@
 import noc_params::*;
 
 module router #(
-    bit SPECULATION = 1,
+    bit SPECULATION = 0,
     parameter VC_TOTAL = 10,
     parameter PORT_NUM = 5,
     parameter VC_NUM = 2,
@@ -99,7 +99,8 @@ module router #(
         .BUFFER_SIZE(BUFFER_SIZE),
         .PIPELINE_DEPTH(PIPELINE_DEPTH),
         .X_CURRENT(X_CURRENT),
-        .Y_CURRENT(Y_CURRENT)
+        .Y_CURRENT(Y_CURRENT),
+        .SPECULATION(SPECULATION)
     )
     input_block (
         .rst(rst),
