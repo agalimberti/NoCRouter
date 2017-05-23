@@ -5,7 +5,8 @@ module input_block #(
     parameter BUFFER_SIZE = 8,
     parameter PIPELINE_DEPTH = 5,
     parameter X_CURRENT = MESH_SIZE_X/2,
-    parameter Y_CURRENT = MESH_SIZE_Y/2
+    parameter Y_CURRENT = MESH_SIZE_Y/2,
+    bit SPECULATION = 0
 )(
     input flit_t data_i [PORT_NUM-1:0],
     input valid_flit_i [PORT_NUM-1:0],
@@ -27,6 +28,11 @@ module input_block #(
     assign va_if.out_port = out_port;
     assign sa_if.out_port = out_port;
 
+    logic [VC_NUM-1:0] vc_request [PORT_NUM-1:0];
+
+    assign va_if.vc_request = vc_request;
+    assign sa_if.vc_request = vc_request;    
+
     genvar ip;
     generate
         for(ip=0; ip<PORT_NUM; ip++)
@@ -35,7 +41,8 @@ module input_block #(
                 .BUFFER_SIZE(BUFFER_SIZE),
                 .PIPELINE_DEPTH(PIPELINE_DEPTH),
                 .X_CURRENT(X_CURRENT),
-                .Y_CURRENT(Y_CURRENT)
+                .Y_CURRENT(Y_CURRENT),
+                .SPECULATION(SPECULATION)
             )
             input_port (
                 .data_i(data_i[ip]),
@@ -49,7 +56,9 @@ module input_block #(
                 .flit_o(crossbar_if.flit[ip]),
                 .on_off_o(on_off_o[ip]),
                 .vc_allocatable_o(vc_allocatable_o[ip]),
-                .vc_request_o(va_if.vc_request[ip]),
+                .vc_request_o(vc_request[ip]),
+                .switch_request_o(sa_if.switch_request[ip]),
+                .downstream_vc_o(sa_if.downstream_vc[ip]),
                 .out_port_o(out_port[ip]),
                 .is_full_o(is_full[ip]),
                 .is_empty_o(is_empty[ip]),

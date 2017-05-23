@@ -15,6 +15,7 @@ package noc_params;
 
 	typedef enum logic [2:0] {LOCAL, NORTH, SOUTH, WEST, EAST} port_t;
 	localparam PORT_NUM = 5;
+	localparam PORT_SIZE = $clog2(PORT_NUM);
 
 	typedef enum logic [1:0] {HEAD, BODY, TAIL, HEADTAIL} flit_label_t;
 

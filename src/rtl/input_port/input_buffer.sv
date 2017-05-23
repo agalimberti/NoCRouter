@@ -2,7 +2,8 @@ import noc_params::*;
 
 module input_buffer #(
     parameter BUFFER_SIZE = 8,
-    parameter PIPELINE_DEPTH = 5
+    parameter PIPELINE_DEPTH = 5,
+    bit SPECULATION = 0
 )(
     input flit_t data_i,
     input read_i,
@@ -99,8 +100,8 @@ module input_buffer #(
     always_comb
     begin
         data_o.flit_label = read_flit.flit_label;
-        data_o.vc_id = downstream_vc_o;
-        data_o.data = read_flit.data;
+		data_o.vc_id = downstream_vc_o;
+		data_o.data = read_flit.data;
 
         ss_next = ss;
         out_port_next = out_port_o;
@@ -145,12 +146,16 @@ module input_buffer #(
                 end
 
                 vc_request_o = 1;
+                if(SPECULATION & read_i)
+                begin
+                    read_cmd = 1; //makes it possible to read for speculation!!!
+                end
                 if(write_i & (data_i.flit_label == BODY | data_i.flit_label == TAIL) & ~end_packet)
                 begin
                     write_cmd = 1;
                 end
 
-                if((write_i & (end_packet | data_i.flit_label == HEAD | data_i.flit_label == HEADTAIL)) | read_i)
+                if((write_i & (end_packet | data_i.flit_label == HEAD | data_i.flit_label == HEADTAIL)) | (~SPECULATION & read_i))
                 begin
                     error_next = 1;
                 end
@@ -162,7 +167,7 @@ module input_buffer #(
 
             SA:
             begin
-                if(read_i & (data_o.flit_label == TAIL | data_o.flit_label == HEADTAIL))
+                if(read_i & data_o.flit_label == TAIL | data_o.flit_label == HEADTAIL)
                 begin
                     ss_next = IDLE;
                     vc_allocatable_next = 1;
