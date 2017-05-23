@@ -16,11 +16,11 @@ module tb_input_port #(
     
     int num_op, timer, total_time;
     int pkt_size[VC_NUM], flit_num[VC_NUM], flit_to_read[VC_NUM], flit_to_read_next[VC_NUM], multiple_head[VC_NUM], 
-        head_count[VC_NUM], wait_time[VC_NUM], va_time[VC_NUM], sa_time[VC_NUM];
+        wait_time[VC_NUM], va_time[VC_NUM], sa_time[VC_NUM];
     
     logic [VC_NUM-1:0] insert_not_compl, va_done, head_done;
-    logic [VC_SIZE-1:0] vc_num, test_vc_num;
-    logic [VC_NUM-1:0] [VC_SIZE-1:0] vc_new;
+    logic [VC_SIZE-1:0] vc_num, vc_num_next, test_vc_num;
+    logic [VC_SIZE-1:0] vc_new [VC_NUM-1:0];
     
     //Enum defining test modes
     typedef enum {SINGLE,MULTI} test_mode_t;
@@ -90,7 +90,7 @@ module tb_input_port #(
         pkt_size[test_vc_num] = 4;
         wait_time[test_vc_num] = 0;
         va_time[test_vc_num] = 2;
-        sa_time[test_vc_num] = 2;
+        sa_time[test_vc_num] = 0;
         test(test_vc_num);
         
         /*
@@ -151,14 +151,17 @@ module tb_input_port #(
         
         /*
         Multiple VCs test
+        NOTE: improper values assigned to SA and/or VA times could cause
+        a failure in tb execution. 
         */
         test_mode = MULTI;
         multiple_head = {0,0};
         pkt_size = {4,5};
         wait_time = {0,0};
-        va_time = {1,1};
+        va_time = {2,3};
         sa_time = {0,0};
-        //test();
+        vc_new = {1'b0,1'b1};
+        test(0); 
                 
         /*
         BODY & TAIL flits without HEAD flit
@@ -193,16 +196,16 @@ module tb_input_port #(
 
     // Create a flit to be written in both DUT and queue
     task create_flit(input flit_label_t lab);
-            flit_written.flit_label = lab;
-            flit_written.vc_id      = vc_num;
-            if(lab == HEAD)
-                begin
-                    flit_written.data.head_data.x_dest  = {DEST_ADDR_SIZE_X{num_op}};
-                    flit_written.data.head_data.y_dest  = {DEST_ADDR_SIZE_Y{num_op}};
-                    flit_written.data.head_data.head_pl = {HEAD_PAYLOAD_SIZE{num_op}};
-                end
-            else
-                    flit_written.data.bt_pl = {FLIT_DATA_SIZE{num_op}};
+        flit_written.flit_label = lab;
+        flit_written.vc_id      = vc_num;
+        if(lab == HEAD)
+            begin
+                flit_written.data.head_data.x_dest  = {DEST_ADDR_SIZE_X{num_op}};
+                flit_written.data.head_data.y_dest  = {DEST_ADDR_SIZE_Y{num_op}};
+                flit_written.data.head_data.head_pl = {HEAD_PAYLOAD_SIZE{num_op}};
+            end
+        else
+                flit_written.data.bt_pl = {FLIT_DATA_SIZE{num_op}};
     endtask
 
     // De-assert the reset signal
@@ -224,12 +227,11 @@ module tb_input_port #(
     /*
     Push the actual flit into the queue, with the new vc, only under specific conditions.
     In particular, the push operation is done if the HEAD flit hasn't been inserted yet or
-    the flit to insert is not an HEAD one (head_count==0).
+    the flit to insert is not an HEAD one (multiple_head==0).
     */
     task push_flit();
-       
         flit_written.vc_id = vc_new[vc_num];
-        if( ~head_done[vc_num] | head_count[vc_num] == 0)
+        if( ~head_done[vc_num] | multiple_head[vc_num] == 0)
         begin
             $display("push %d", $time);
             flit_queue[vc_num].push_back(flit_written);
@@ -242,17 +244,20 @@ module tb_input_port #(
     The check is done only whether the given vc is not empty or there are still some flits that have to be read.
     If the check goes wrong an error message is displayed and the testbench ends.
     */
-    task check_flits();
-        //$display("*** %d, %d", is_empty_o[vc_num], flit_to_read[vc_num]);
-        if( (~(is_empty_o[vc_num])) | flit_to_read[vc_num] > 0)
-        begin
-            if(~(flit_read === flit_o))
+    task checkFlits();
+        @(negedge clk)
+        $display("Check %d, vcnum %d, empty %d, toread %d",$time, vc_num,is_empty_o[vc_num], flit_to_read[vc_num]); 
+        begin 
+            if( ((~(is_empty_o[vc_num])) | flit_to_read[vc_num] > 0) & va_done[vc_num] & valid_sel_cmd)
             begin
-                $display("[READ] FAILED %d", $time);
-                #10 $finish;
-            end
-            else
-                $display("[READ] PASSED %d", $time);
+                if(~(flit_read === flit_o))
+                begin
+                    $display("[READ] FAILED %d", $time);
+                    #10 $finish;
+                end
+                else
+                    $display("[READ] PASSED %d", $time);
+            end 
         end
     endtask
 
@@ -289,29 +294,33 @@ module tb_input_port #(
     endtask
 
     /*
-    This is the main task of the testbench: after an initial phase of initialization, it repeatedly calls the 3 subtasks
-    until there is no flits to read or the insertion of all the flits of a packet has not been completed.
+    This is the main task of the testbench: after an initial phase of initialization, it repeatedly calls the 4 subtasks
+    until there is no flits to read or the insertion of all the flits of a packet has not been completed (these two conditions
+    are checked by means of a separate task).
     
     Parameters
-        curr_vc: is the vc identifier in which the packet will be inserted
+        curr_vc: is the vc identifier in which the packet will be inserted. It is relevant only the test mode in SINGLE. 
     */
     task test(input logic [VC_SIZE-1:0] curr_vc);
         
         vc_num = curr_vc;
-        head_count[vc_num] = multiple_head[curr_vc];
-        init_test();
+        initTest();
 
         $display("Packet size: %d", pkt_size[vc_num]);
-        while(flit_to_read[vc_num] > 0 | insert_not_compl[vc_num] == 1) @(posedge clk)
+        while(checkEndConditions()) @(posedge clk)
         begin
-            $display("Time %d, total time:%d, to read %d, timer %d",$time, total_time, flit_to_read[vc_num], timer);
+            $display("Time %d,vc_num: %d total time:%d, to read %d, timer %d",$time, vc_num, total_time, flit_to_read[vc_num], timer);
+            
             insertFlit();
             commandIP();
             readFlit();
             
-            total_time++;
+            if(test_mode == MULTI)
+                vcChange();
+            
             flit_to_read[vc_num] = flit_to_read_next[vc_num];
-            $display("Time %d, total time:%d, to read %d, timer  %d",$time,  total_time, flit_to_read[vc_num], timer);
+            total_time++;
+            $display("Time %d,vc_num: %d total time:%d, to read %d, timer %d",$time, vc_num, total_time, flit_to_read[vc_num], timer);
         end
         
         @(posedge clk)
@@ -322,10 +331,25 @@ module tb_input_port #(
     endtask
     
     /*
-    This task is responsible of calling the proper writing task according to some connditions.
+    This task checks whether there are flits still to be read and that the insertion of a packet into the buffer has not yet completed.
+    The checks is done for all VCs. 
+    */
+    function bit unsigned checkEndConditions();
+        automatic int i;
+    
+        for(i = 0; i < VC_NUM; i++)
+        begin
+            if(flit_to_read[i] > 0 | insert_not_compl[i] == 1)
+                return 1;
+        end
+        return 0;
+    endfunction
+    
+    /*
+    This task is responsible of calling the proper writing task according to some conditions.
     */
     task insertFlit();
-    //$display("head cnt %d", head_count[vc_num]);
+    //$display("head cnt %d", multiple_head[vc_num]);
     if(pkt_size[vc_num] == 1)
     begin
         flit_num[vc_num]++;
@@ -344,16 +368,16 @@ module tb_input_port #(
         begin
             flit_num[vc_num]++;
                                 
-            if(flit_num[vc_num] == 1 | head_count[vc_num] > 0)
+            if(flit_num[vc_num] == 1 | multiple_head[vc_num] > 0)
                 begin
                     create_flit(HEAD);
                     write_flit();
-                    head_count[vc_num]--;
+                    multiple_head[vc_num]--;
                     head_done[vc_num] = 1;
                 end
             else
             begin
-                head_count[vc_num] = 0;
+                multiple_head[vc_num] = 0;
                 if (flit_num[vc_num] == pkt_size[vc_num])
                 begin
                     create_flit(TAIL);
@@ -383,22 +407,20 @@ module tb_input_port #(
     out of the queue and calls the check task (on the next falling edge of the clock). 
     */
     task readFlit();
-        if(flit_to_read[vc_num] > 0 & va_done[vc_num])
+        $display("Read simtime %d, ttime %d, vcnum %d toread %d vadone %d",$time, total_time, vc_num,flit_to_read[vc_num] , va_done[vc_num]);
+        if(flit_to_read[vc_num] > 0 & va_done[vc_num] & total_time>va_time[vc_num]+sa_time[vc_num])
         begin
             num_op++;
             flit_to_read_next[vc_num]--;
             begin
                 flit_read = flit_queue[vc_num].pop_front();
                 begin
-                    valid_sel_cmd   <= 1;
-                    vc_sel_cmd      <= vc_num;
-                end
-                
-                @(negedge clk)
-                begin
-                    check_flits();
+                    //valid_sel_cmd   <= 1;
+                    //vc_sel_cmd      <= vc_num;
                 end
             end
+            
+            checkFlits();
         end
     endtask
 
@@ -425,12 +447,16 @@ module tb_input_port #(
             valid_sel_cmd       <= 1;
             vc_sel_cmd          <= vc_num;
         end
+        
+        //if(vc_num != vc_sel_cmd)
+          //  valid_sel_cmd <= 0;
+
     endtask
     
     /*
-    This task initializes all variables that are necessary for each test before it starts.
+    This task initializes to proper value all variables that are necessary for each test before it starts.
     */
-    task init_test();
+    task initTest();
         automatic int i;
 
         total_time  = 0;
@@ -438,12 +464,31 @@ module tb_input_port #(
 
         for(i = 0; i < VC_NUM; i++)
         begin
+            va_done[i]          = 0;
             head_done[i]        = 0;
             flit_num[i]         = 0;
             flit_to_read[i]     = 0;
             flit_to_read_next[i]= 0;
-            insert_not_compl[i] = 1;
+            insert_not_compl[i] = 0;
         end
+        
+        if(test_mode == MULTI)
+        begin
+            vc_num = 0;
+            vc_num_next = 0;
+            insert_not_compl = {1'b1,1'b1};
+        end
+        else
+            insert_not_compl[vc_num]= 1;
+                    
     endtask
-
+    
+    /*
+    Update the vc identifier
+    */
+    task vcChange();
+        vc_num_next++;
+        vc_num <= vc_num_next;
+    endtask
+    
 endmodule
