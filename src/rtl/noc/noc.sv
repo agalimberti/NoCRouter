@@ -26,8 +26,6 @@ package noc_params;
 		logic [HEAD_PAYLOAD_SIZE-1: 0] 	head_pl;
 	} head_data_t;
 
-	typedef logic [FLIT_DATA_SIZE-1 : 0] body_tail_payload_t;
-
 	typedef struct packed
 	{
 		flit_label_t			flit_label;
@@ -38,5 +36,15 @@ package noc_params;
 			body_tail_payload_t bt_pl;
 		} data;
 	} flit_t;
+
+    typedef struct packed
+    {
+        flit_label_t flit_label;
+        union packed
+        {
+            head_data_t head_data;
+            body_tail_payload_t bt_pl;
+        } data;
+    } flit_novc_t;
 
 endpackage

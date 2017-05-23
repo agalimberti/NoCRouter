@@ -4,12 +4,12 @@ module circular_buffer #(
     parameter BUFFER_SIZE = 8,
     parameter PIPELINE_DEPTH = 5
 )(
-    input flit_t data_i,
+    input flit_novc_t data_i,
     input read_i,
     input write_i,
     input rst,
     input clk,
-    output flit_t data_o,
+    output flit_novc_t data_o,
     output logic is_full_o,
     output logic is_empty_o,
     output logic on_off_o
@@ -17,7 +17,7 @@ module circular_buffer #(
 
     localparam [31:0] POINTER_SIZE = $clog2(BUFFER_SIZE);
 
-    flit_t memory[BUFFER_SIZE-1:0];
+    flit_novc_t memory[BUFFER_SIZE-1:0];
 
     logic [POINTER_SIZE-1:0] read_ptr;
     logic [POINTER_SIZE-1:0] write_ptr;

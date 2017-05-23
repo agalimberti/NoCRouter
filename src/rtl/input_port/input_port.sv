@@ -27,7 +27,8 @@ module input_port #(
     output logic [VC_NUM-1:0] error_o
 );
 
-    flit_t [VC_NUM-1:0] data;
+    flit_novc_t data_cmd;
+    flit_t [VC_NUM-1:0] data_out;
 
     port_t out_port_cmd;
 
@@ -44,7 +45,7 @@ module input_port #(
                 .SPECULATION(SPECULATION)
             )
             input_buffer (
-                .data_i(data_i),
+                .data_i(data_cmd),
                 .read_i(read_cmd[vc]),
                 .write_i(write_cmd[vc]),
                 .vc_new_i(vc_new_i[vc]),
@@ -52,7 +53,7 @@ module input_port #(
                 .out_port_i(out_port_cmd),
                 .rst(rst),
                 .clk(clk),
-                .data_o(data[vc]),
+                .data_o(data_out[vc]),
                 .is_full_o(is_full_o[vc]),
                 .is_empty_o(is_empty_o[vc]),
                 .on_off_o(on_off_o[vc]),
@@ -88,6 +89,9 @@ module input_port #(
     */
     always_comb
     begin
+        data_cmd.flit_label = data_i.flit_label;
+        data_cmd.data = data_i.data;
+        
         write_cmd = {VC_NUM{1'b0}};
         if(valid_flit_i)
             write_cmd[data_i.vc_id] = 1;
@@ -95,7 +99,7 @@ module input_port #(
         read_cmd = {VC_NUM{1'b0}};
         if(valid_sel_i)
             read_cmd[vc_sel_i] = 1;
-        flit_o = data[vc_sel_i];
+        flit_o = data_out[vc_sel_i];
     end
 
 endmodule
