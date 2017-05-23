@@ -2,7 +2,8 @@ import noc_params::*;
 
 module input_buffer #(
     parameter BUFFER_SIZE = 8,
-    parameter PIPELINE_DEPTH = 5
+    parameter PIPELINE_DEPTH = 5,
+    bit SPECULATION = 0
 )(
     input flit_t data_i,
     input read_i,
@@ -145,13 +146,16 @@ module input_buffer #(
                 end
 
                 vc_request_o = 1;
-                read_cmd = read_i; //makes it possible to read for speculation!!!
+                if(SPECULATION & read_i)
+                begin
+                    read_cmd = 1; //makes it possible to read for speculation!!!
+                end
                 if(write_i & (data_i.flit_label == BODY | data_i.flit_label == TAIL) & ~end_packet)
                 begin
                     write_cmd = 1;
                 end
 
-                if(write_i & (end_packet | data_i.flit_label == HEAD))
+                if((write_i & (end_packet | data_i.flit_label == HEAD)) | (~SPECULATION & read_i))
                 begin
                     error_next = 1;
                 end
