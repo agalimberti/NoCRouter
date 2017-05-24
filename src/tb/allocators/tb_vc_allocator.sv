@@ -13,15 +13,22 @@ module tb_vc_allocator #(
 
     logic [VC_TOTAL-1:0] idle_downstream_vc_i;
     
-    logic [VC_TOTAL-1:0] vc_to_allocate_i;
+    //logic [VC_TOTAL-1:0] vc_to_allocate_i;
     
-    port_t [VC_TOTAL-1:0] out_port_i;
+    /*INPUT BLOCK MOCK*/
+    port_t [VC_NUM-1:0] out_port [PORT_NUM-1:0];
     
-    logic [VC_SIZE-1:0] vc_new_o [VC_TOTAL-1:0];
+    logic [VC_NUM-1:0] vc_request [PORT_NUM-1:0];
+    
+    /*INTERFACES INSTANTIATION*/
+        
+    input_block2vc_allocator ib_if();
+    
+    //port_t [VC_TOTAL-1:0] out_port_i;
 
-    logic [VC_SIZE-1:0] vc_new_generated [VC_TOTAL-1:0];
+    logic [VC_SIZE-1:0] vc_new_generated [PORT_NUM-1:0] [VC_NUM-1:0];
     
-    logic [VC_TOTAL-1:0] vc_valid_o, vc_valid_generated;
+    logic [VC_NUM-1:0] vc_valid_generated [PORT_NUM-1:0];
     
     port_t [PORT_NUM-1:0] ports = {LOCAL, NORTH, SOUTH, WEST, EAST};
 
@@ -51,14 +58,19 @@ module tb_vc_allocator #(
         .VC_NUM(VC_NUM)
     )
     vc_allocator (
-        .rst(rst),
-        .clk(clk),
-        .idle_downstream_vc_i(idle_downstream_vc_i),
-        .vc_to_allocate_i(vc_to_allocate_i),
-        .out_port_i(out_port_i),
-        .vc_new_o(vc_new_o),
-        .vc_valid_o(vc_valid_o)
+            .rst(rst),
+            .clk(clk),
+            .idle_downstream_vc_i(idle_downstream_vc_i),
+            .ib_if(ib_if.vc_allocator)
+     );
+    /*MOCK INSTANTIATION*/
+    
+    ib_mock ib_mock(
+            .ib_if(ib_if.input_block),
+            .out_port_i(out_port),
+            .vc_request_i(vc_request)
     );
+         
     /*
     The testbench performs four different test:
     1) Simulation of the basic tasks that the allocator has to perform, all the requests are cumulative
@@ -100,7 +112,8 @@ module tb_vc_allocator #(
         available_vc_curr  = {VC_TOTAL{1'b1}};
         curr_highest_priority_in = {VC_TOTAL{1'b0}};
         curr_highest_priority_out = {VC_TOTAL{1'b0}};
-        vc_to_allocate_i = {VC_TOTAL{1'b0}};
+        for(int i = 0; i <PORT_NUM ; i++)
+            vc_request[i] = {VC_NUM{1'b0}};
     endtask
     
     task reset();
@@ -108,16 +121,18 @@ module tb_vc_allocator #(
         available_vc_curr  = {VC_TOTAL{1'b1}};
         curr_highest_priority_in = {VC_TOTAL{1'b0}};
         curr_highest_priority_out = {VC_TOTAL{1'b0}};
-        vc_to_allocate_i = {VC_TOTAL{1'b0}};
+        for(int i = 0; i <PORT_NUM ; i++)
+                    vc_request[i] = {VC_NUM{1'b0}};
     endtask
     /*First test the vc allocator is called to execute a number of basic tasks*/
     task test_cumulative_requests();
         repeat(10) @(posedge clk)
         begin
             idle_downstream_vc_i = {VC_TOTAL{$random}};
-            for(int i = 0; i < VC_TOTAL; i++)
-                out_port_i[i] = ports[$urandom_range(4,0)];
-            vc_to_allocate_i = {VC_TOTAL{$random}};
+            for(int i = 0; i < PORT_NUM; i++)
+                out_port[i] = {VC_NUM{ports[$urandom_range(4,0)]}};
+            for(int i = 0; i <PORT_NUM ; i++)
+                vc_request[i] = {VC_NUM{$random}};
             test_check();
         end
     endtask
@@ -129,9 +144,10 @@ module tb_vc_allocator #(
         begin
             @(posedge clk)
             idle_downstream_vc_i = {VC_TOTAL{1'b1}};
-            for (int i = 0; i < VC_TOTAL; i++)
-                out_port_i[i] = ports[j];
-            vc_to_allocate_i = {VC_TOTAL{1'b1}};
+            for(int i = 0; i < PORT_NUM; i++)
+                out_port[i] = {VC_NUM{ports[j]}};
+            for(int i = 0; i < PORT_NUM; i++)
+                vc_request[i]= {VC_NUM{1'b1}};
             test_check();
         end
     endtask
@@ -143,9 +159,10 @@ module tb_vc_allocator #(
         begin
             @(posedge clk)
             idle_downstream_vc_i = {VC_TOTAL{1'b0}};
-            for (int i = 0; i < VC_TOTAL; i++)
-                out_port_i[i] = ports[$urandom_range(4,0)];
-            vc_to_allocate_i = {VC_TOTAL{1'b1}};
+            for(int i = 0; i < PORT_NUM; i++)
+                out_port[i] = {VC_NUM{ports[$urandom_range(4,0)]}};
+            for(int i = 0; i < PORT_NUM; i++)
+                vc_request[i] = {VC_NUM{1'b1}};
             test_check();
         end
         
@@ -153,9 +170,10 @@ module tb_vc_allocator #(
         begin
             @(posedge clk)
             idle_downstream_vc_i = {VC_TOTAL{1'b1}};
-            for (int i = 0; i < VC_TOTAL; i++)
-                out_port_i[i] = ports[$urandom_range(4,0)];
-            vc_to_allocate_i = {VC_TOTAL{1'b1}};
+            for(int i = 0; i < PORT_NUM; i++)
+                out_port[i] = {VC_NUM{ports[$urandom_range(4,0)]}};
+            for(int i = 0; i < PORT_NUM; i++)
+                vc_request[i] = {VC_NUM{1'b1}};
             test_check();
         end
     endtask
@@ -169,9 +187,10 @@ module tb_vc_allocator #(
         repeat(10) @(posedge clk)
         begin
             idle_downstream_vc_i = {VC_TOTAL{$random}};
-            for(int i = 0; i < VC_TOTAL; i++)
-                out_port_i[i] = ports[$urandom_range(4,0)];
-            vc_to_allocate_i = {VC_TOTAL{$random}};
+            for(int i = 0; i < PORT_NUM; i++)
+                out_port[i] = {VC_NUM{ports[$urandom_range(4,0)]}};
+            for(int i = 0; i < PORT_NUM; i++)
+                vc_request[i] = {VC_NUM{$random}};
             test_check();
         end
     endtask
@@ -181,15 +200,23 @@ module tb_vc_allocator #(
     */
     task test_check();
         available_vc_prox = available_vc_curr;
-        vc_valid_generated = {VC_TOTAL{1'b0}};
+        for(int port = 0; port < PORT_NUM; port = port + 1)
+        begin
+            vc_valid_generated[port] = {VC_NUM{1'b0}};
+        end
         requests_cmd_i = {VC_TOTAL*VC_TOTAL{1'b0}};
-        for(int up_vc = 0; up_vc < VC_TOTAL; up_vc = up_vc + 1)
-            vc_new_generated[up_vc] = {VC_SIZE{1'bx}};
+        for(int up_port = 0; up_port < PORT_NUM; up_port = up_port + 1)
+        begin
+            for(int up_vc = 0; up_vc < VC_NUM; up_vc = up_vc + 1)
+            begin
+                vc_new_generated[up_port][up_vc] = {VC_SIZE{1'bx}};
+            end
+        end
         for(int up_vc = 0; up_vc < VC_TOTAL; up_vc = up_vc + 1)
         begin
             for(int down_vc = 0; down_vc < VC_TOTAL; down_vc = down_vc + 1)
             begin
-                if(vc_to_allocate_i[up_vc] & available_vc_curr[down_vc] & (down_vc / VC_NUM) == out_port_i[up_vc])
+                if(vc_request[up_vc / VC_NUM][up_vc % VC_NUM] & available_vc_curr[down_vc] & (down_vc / VC_NUM) == out_port [up_vc / VC_NUM][up_vc % VC_NUM])
                 begin
                     requests_cmd_i[up_vc][down_vc] = 1'b1;
                 end
@@ -250,8 +277,8 @@ module tb_vc_allocator #(
             begin
                 if(grants_out_trasp[up_vc][down_vc])
                 begin
-                    vc_new_generated[up_vc] = (VC_SIZE)'(down_vc % VC_NUM);
-                    vc_valid_generated[up_vc] = 1'b1;
+                    vc_new_generated[up_vc / VC_NUM][up_vc % VC_NUM] = (VC_SIZE)'(down_vc % VC_NUM);
+                    vc_valid_generated[up_vc / VC_NUM][up_vc % VC_NUM] = 1'b1;
                     available_vc_prox[down_vc] = 1'b0;
                 end
             end
@@ -270,23 +297,50 @@ module tb_vc_allocator #(
     
     task check();
         @(negedge clk)
-        for(int j = 0; j < VC_TOTAL; j++)
+        for(int j = 0; j < VC_SIZE; j++)
         begin
-            if(vc_new_generated[j]!==vc_new_o[j])
+            for(int i = 0; i < PORT_NUM; i++)
             begin
-            $display("[ALLOCATOR] FAILED time: %d", $time);
-            #5 $finish;
-            end       
+                for(int k = 0; k < VC_NUM; k++)
+                begin
+                    if(vc_new_generated[j][i][k]!==ib_mock.vc_new_o[j][i][k])
+                    begin
+                        $display("[ALLOCATOR] FAILED time: %d", $time);
+                        #5 $finish;
+                    end
+                end
+            end   
         end
 
-        for(int j = 0; j < VC_TOTAL; j++)
+        for(int j = 0; j < VC_NUM; j++)
         begin
-            if(vc_valid_generated[j]!==vc_valid_o[j])
+            for(int i = 0; i < PORT_NUM; i++)
             begin
-            $display("[ALLOCATOR] FAILED time: %d", $time);
-            #5 $finish;
+                if(vc_valid_generated[j][i]!==ib_mock.vc_valid_o[j][i])
+                begin
+                $display("[ALLOCATOR] FAILED time: %d", $time);
+                #5 $finish;
+                end
             end
         end
     endtask
 
+endmodule
+
+module ib_mock #()(
+    input_block2vc_allocator.input_block ib_if,
+    input port_t [VC_NUM-1:0] out_port_i [PORT_NUM-1:0],
+    input logic [VC_NUM-1:0] vc_request_i [PORT_NUM-1:0],
+    output logic [VC_SIZE-1:0] vc_new_o [PORT_NUM-1:0] [VC_NUM-1:0],
+    output logic [VC_NUM-1:0] vc_valid_o [PORT_NUM-1:0]
+);
+
+    always_comb
+    begin
+        vc_new_o = ib_if.vc_new;
+        vc_valid_o = ib_if.vc_valid;
+        ib_if.out_port = out_port_i;
+        ib_if.vc_request = vc_request_i;
+    end
+    
 endmodule
