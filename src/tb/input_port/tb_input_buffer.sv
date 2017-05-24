@@ -3,8 +3,7 @@
 import noc_params::*;
 
 module tb_input_buffer #(
-    parameter BUFFER_SIZE = 8,
-    parameter PIPELINE_DEPTH = 5
+    parameter BUFFER_SIZE = 8
 );
 
     int i;
@@ -35,8 +34,7 @@ module tb_input_buffer #(
     wire vc_allocatable_o;
 
     input_buffer #(
-        .BUFFER_SIZE(BUFFER_SIZE),
-        .PIPELINE_DEPTH(PIPELINE_DEPTH)
+        .BUFFER_SIZE(BUFFER_SIZE)
     )
     input_buffer (
         .data_i(data_i),

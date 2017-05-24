@@ -2,7 +2,6 @@ import noc_params::*;
 
 module input_buffer #(
     parameter BUFFER_SIZE = 8,
-    parameter PIPELINE_DEPTH = 5,
     bit SPECULATION = 0
 )(
     input flit_novc_t data_i,
@@ -39,8 +38,7 @@ module input_buffer #(
     port_t out_port_next;
 
     circular_buffer #(
-        .BUFFER_SIZE(BUFFER_SIZE),
-        .PIPELINE_DEPTH(PIPELINE_DEPTH)
+        .BUFFER_SIZE(BUFFER_SIZE)
     )
     circular_buffer (
         .data_i(data_i),

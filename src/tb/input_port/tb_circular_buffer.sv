@@ -3,8 +3,7 @@
 import noc_params::*;
 
 module tb_circular_buffer #(
-    parameter BUFFER_SIZE = 8,
-    parameter PIPELINE_DEPTH = 5
+    parameter BUFFER_SIZE = 8
 );
 
     int i,j;
@@ -41,8 +40,7 @@ module tb_circular_buffer #(
     always #5 clk = ~clk;
 
     circular_buffer #(
-        .BUFFER_SIZE(BUFFER_SIZE),
-        .PIPELINE_DEPTH(PIPELINE_DEPTH)
+        .BUFFER_SIZE(BUFFER_SIZE)
     )
     circular_buffer (
         .data_i(data_i),

@@ -6,7 +6,6 @@ module router #(
     parameter PORT_NUM = 5,
     parameter VC_NUM = 2,
     parameter BUFFER_SIZE = 8,
-    parameter PIPELINE_DEPTH = 5,
     parameter X_CURRENT = MESH_SIZE_X/2,
     parameter Y_CURRENT = MESH_SIZE_Y/2
 )(
@@ -97,7 +96,6 @@ module router #(
     input_block #(
         .PORT_NUM(PORT_NUM),
         .BUFFER_SIZE(BUFFER_SIZE),
-        .PIPELINE_DEPTH(PIPELINE_DEPTH),
         .X_CURRENT(X_CURRENT),
         .Y_CURRENT(Y_CURRENT),
         .SPECULATION(SPECULATION)

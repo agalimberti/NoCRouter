@@ -4,7 +4,6 @@ import noc_params::*;
 
 module tb_input_port #(
     parameter BUFFER_SIZE = 8,
-    parameter PIPELINE_DEPTH = 5,
     parameter X_CURRENT = MESH_SIZE_X/2,
     parameter Y_CURRENT = MESH_SIZE_Y/2
 );
@@ -47,7 +46,6 @@ module tb_input_port #(
     //DUT INSTANTIATION
     input_port #(
         .BUFFER_SIZE(BUFFER_SIZE),
-        .PIPELINE_DEPTH(PIPELINE_DEPTH),
         .X_CURRENT(X_CURRENT),
         .Y_CURRENT(Y_CURRENT)
     )

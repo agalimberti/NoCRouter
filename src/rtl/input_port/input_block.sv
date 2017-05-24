@@ -3,7 +3,6 @@ import noc_params::*;
 module input_block #(
     parameter PORT_NUM = 5,
     parameter BUFFER_SIZE = 8,
-    parameter PIPELINE_DEPTH = 5,
     parameter X_CURRENT = MESH_SIZE_X/2,
     parameter Y_CURRENT = MESH_SIZE_Y/2,
     bit SPECULATION = 0
@@ -39,7 +38,6 @@ module input_block #(
         begin: generate_input_ports
             input_port #(
                 .BUFFER_SIZE(BUFFER_SIZE),
-                .PIPELINE_DEPTH(PIPELINE_DEPTH),
                 .X_CURRENT(X_CURRENT),
                 .Y_CURRENT(Y_CURRENT),
                 .SPECULATION(SPECULATION)
