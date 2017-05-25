@@ -30,18 +30,21 @@ module tb_input_port #(
     logic valid_flit_cmd;
     logic rst;
     logic clk;
-    logic [VC_SIZE-1 : 0] vc_sel_cmd;
-    logic [VC_SIZE-1:0] vc_new_cmd [VC_NUM-1:0];
-    logic [VC_NUM-1:0] vc_valid_cmd;
-    logic valid_sel_cmd;
+    logic [VC_SIZE-1 : 0] sa_sel_vc_cmd;
+    logic [VC_SIZE-1:0] va_new_vc_cmd [VC_NUM-1:0];
+    logic [VC_NUM-1:0] va_valid_cmd;
+    logic sa_valid_cmd;
 
     flit_t flit_o;
-    wire [VC_NUM-1:0] on_off_o;
-    wire [VC_NUM-1:0] vc_allocatable_o;
-    wire [VC_NUM-1:0] vc_request_o;
+    wire [VC_NUM-1:0] is_on_off_o;
+    wire [VC_NUM-1:0] is_allocatable_vc_o;
+    wire [VC_NUM-1:0] va_request_o;
+    logic sa_request_o [VC_NUM-1:0];
+    logic [VC_SIZE-1:0] sa_downstream_vc_o [VC_NUM-1:0];
     port_t [VC_NUM-1:0] out_port_o;
     wire [VC_NUM-1:0] is_full_o;
     wire [VC_NUM-1:0] is_empty_o;
+    wire [VC_NUM-1:0] error_o;
 
     //DUT INSTANTIATION
     input_port #(
@@ -54,17 +57,20 @@ module tb_input_port #(
        .valid_flit_i(valid_flit_cmd),
        .rst(rst),
        .clk(clk),
-       .vc_sel_i(vc_sel_cmd),
-       .vc_new_i(vc_new_cmd),
-       .vc_valid_i(vc_valid_cmd),
-       .valid_sel_i(valid_sel_cmd),
-       .flit_o(flit_o),
-       .on_off_o(on_off_o),
-       .vc_allocatable_o(vc_allocatable_o),
-       .vc_request_o(vc_request_o),
+       .sa_sel_vc_i(sa_sel_vc_cmd),
+       .va_new_vc_i(va_new_vc_cmd),
+       .va_valid_i(va_valid_cmd),
+       .sa_valid_i(sa_valid_cmd),
+       .xb_flit_o(flit_o),
+       .is_on_off_o(is_on_off_o),
+       .is_allocatable_vc_o(is_allocatable_vc_o),
+       .va_request_o(va_request_o),
+       .sa_request_o(sa_request_o),
+       .sa_downstream_vc_o(sa_downstream_vc_o),
        .out_port_o(out_port_o),
        .is_full_o(is_full_o),
-       .is_empty_o(is_empty_o)
+       .is_empty_o(is_empty_o),
+       .error_o(error_o)
     );
 
     initial
@@ -185,11 +191,11 @@ module tb_input_port #(
         clk             <= 0;
         rst             = 1;
         valid_flit_cmd  = 0;
-        vc_sel_cmd      = 0;
-        vc_valid_cmd    = 0;
-        valid_sel_cmd   = 0;
+        sa_sel_vc_cmd   = 0;
+        va_valid_cmd    = 0;
+        sa_valid_cmd    = 0;
         for(int i = 0; i < VC_NUM; i++)
-            vc_new_cmd[i] = 0;
+            va_new_vc_cmd[i] = 0;
     endtask
 
     // Create a flit to be written in both DUT and queue
@@ -246,7 +252,7 @@ module tb_input_port #(
         @(negedge clk)
         $display("Check %d, vcnum %d, empty %d, toread %d",$time, vc_num,is_empty_o[vc_num], flit_to_read[vc_num]); 
         begin 
-            if( ((~(is_empty_o[vc_num])) | flit_to_read[vc_num] > 0) & va_done[vc_num] & valid_sel_cmd)
+            if( ((~(is_empty_o[vc_num])) | flit_to_read[vc_num] > 0) & va_done[vc_num] & sa_valid_cmd)
             begin
                 if(~(flit_read === flit_o))
                 begin
@@ -267,7 +273,7 @@ module tb_input_port #(
     task noHead();
         @(posedge clk)
         begin
-            valid_sel_cmd <= 0;
+            sa_valid_cmd <= 0;
             create_flit(BODY);
             write_flit();
         end
@@ -279,7 +285,7 @@ module tb_input_port #(
         end
         @(posedge clk)
         begin
-            valid_sel_cmd <= 0;
+            sa_valid_cmd <= 0;
             create_flit(TAIL);
             write_flit();
         end
@@ -323,7 +329,7 @@ module tb_input_port #(
         
         @(posedge clk)
         begin
-            valid_sel_cmd   <= 0;
+            sa_valid_cmd    <= 0;
             va_done         <= 0;
         end
     endtask
@@ -413,8 +419,8 @@ module tb_input_port #(
             begin
                 flit_read = flit_queue[vc_num].pop_front();
                 begin
-                    //valid_sel_cmd   <= 1;
-                    //vc_sel_cmd      <= vc_num;
+                    //sa_valid_cmd   <= 1;
+                    //sa_sel_vc_cmd  <= vc_num;
                 end
             end
             
@@ -432,22 +438,22 @@ module tb_input_port #(
     */  
     task commandIP();
         
-        vc_valid_cmd <= 0;
+        va_valid_cmd <= 0;
         
         if(total_time == va_time[vc_num]) //VA phase
         begin
             va_done[vc_num]         <= 1;
-            vc_valid_cmd[vc_num]    <= 1;
-            vc_new_cmd[vc_num]      <= vc_new[vc_num];
+            va_valid_cmd[vc_num]    <= 1;
+            va_new_vc_cmd[vc_num]   <= vc_new[vc_num];
         end
         else if(total_time > va_time[vc_num]+sa_time[vc_num]) //SA phase
         begin
-            valid_sel_cmd       <= 1;
-            vc_sel_cmd          <= vc_num;
+            sa_valid_cmd       <= 1;
+            sa_sel_vc_cmd      <= vc_num; 
         end
         
-        //if(vc_num != vc_sel_cmd)
-          //  valid_sel_cmd <= 0;
+        //if(vc_num != sa_sel_vc_cmd)
+          //  sa_valid_cmd <= 0;
 
     endtask
     
