@@ -1,8 +1,7 @@
 import noc_params::*;
 
 module input_buffer #(
-    parameter BUFFER_SIZE = 8,
-    bit SPECULATION = 0
+    parameter BUFFER_SIZE = 8
 )(
     input flit_novc_t data_i,
     input read_i,
@@ -144,16 +143,12 @@ module input_buffer #(
                 end
 
                 vc_request_o = 1;
-                if(SPECULATION & read_i)
-                begin
-                    read_cmd = 1; //makes it possible to read for speculation!!!
-                end
                 if(write_i & (data_i.flit_label == BODY | data_i.flit_label == TAIL) & ~end_packet)
                 begin
                     write_cmd = 1;
                 end
 
-                if((write_i & (end_packet | data_i.flit_label == HEAD | data_i.flit_label == HEADTAIL)) | (~SPECULATION & read_i))
+                if((write_i & (end_packet | data_i.flit_label == HEAD | data_i.flit_label == HEADTAIL)) | read_i)
                 begin
                     error_next = 1;
                 end

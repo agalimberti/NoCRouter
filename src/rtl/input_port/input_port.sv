@@ -3,8 +3,7 @@ import noc_params::*;
 module input_port #(
     parameter BUFFER_SIZE = 8,
     parameter X_CURRENT = MESH_SIZE_X/2,
-    parameter Y_CURRENT = MESH_SIZE_Y/2,
-    bit SPECULATION = 0
+    parameter Y_CURRENT = MESH_SIZE_Y/2
 )(
     input flit_t data_i,
     input valid_flit_i,
@@ -39,8 +38,7 @@ module input_port #(
         for(vc=0; vc<VC_NUM; vc++)
         begin: generate_virtual_channels
             input_buffer #(
-                .BUFFER_SIZE(BUFFER_SIZE),
-                .SPECULATION(SPECULATION)
+                .BUFFER_SIZE(BUFFER_SIZE)
             )
             input_buffer (
                 .data_i(data_cmd),

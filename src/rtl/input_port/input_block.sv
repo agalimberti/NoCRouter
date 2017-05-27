@@ -4,8 +4,7 @@ module input_block #(
     parameter PORT_NUM = 5,
     parameter BUFFER_SIZE = 8,
     parameter X_CURRENT = MESH_SIZE_X/2,
-    parameter Y_CURRENT = MESH_SIZE_Y/2,
-    bit SPECULATION = 0
+    parameter Y_CURRENT = MESH_SIZE_Y/2
 )(
     input flit_t data_i [PORT_NUM-1:0],
     input valid_flit_i [PORT_NUM-1:0],
@@ -39,8 +38,7 @@ module input_block #(
             input_port #(
                 .BUFFER_SIZE(BUFFER_SIZE),
                 .X_CURRENT(X_CURRENT),
-                .Y_CURRENT(Y_CURRENT),
-                .SPECULATION(SPECULATION)
+                .Y_CURRENT(Y_CURRENT)
             )
             input_port (
                 .data_i(data_i[ip]),
