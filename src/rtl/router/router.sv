@@ -21,16 +21,16 @@ module router #(
 );
 
     //connections from upstream
-    flit_t [PORT_NUM-1:0] data_out;
+    flit_t data_out [PORT_NUM-1:0];
     logic  [PORT_NUM-1:0] is_valid_out;
     logic  [PORT_NUM-1:0] [VC_NUM-1:0] is_on_off_in;
     logic  [PORT_NUM-1:0] [VC_NUM-1:0] is_allocatable_in;
 
     //connections from downstream
-    flit_t [PORT_NUM-1:0] data_in;
-    logic  [PORT_NUM-1:0] is_valid_in;
-    logic  [PORT_NUM-1:0] [VC_NUM-1:0] is_on_off_out;
-    logic  [PORT_NUM-1:0] [VC_NUM-1:0] is_allocatable_out;
+    flit_t data_in [PORT_NUM-1:0];
+    logic  is_valid_in [PORT_NUM-1:0];
+    logic  [VC_NUM-1:0] is_on_off_out [PORT_NUM-1:0];
+    logic  [VC_NUM-1:0] is_allocatable_out [PORT_NUM-1:0];
 
     always_comb
     begin
@@ -123,7 +123,7 @@ module router #(
         .on_off_i(is_on_off_in),
         .ib_if(ib2sa_if),
         .xbar_if(sa2xbar_if),
-        .is_valid_o(is_valid_out)
+        .valid_flit_o(is_valid_out)
     );
     
     vc_allocator #(
