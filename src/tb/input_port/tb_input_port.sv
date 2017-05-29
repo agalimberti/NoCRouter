@@ -448,7 +448,11 @@ module tb_input_port #(
         end
         else if(total_time > va_time[vc_num]+sa_time[vc_num]) //SA phase
         begin
-            sa_valid_cmd       <= 1;
+            if(flit_to_read_next[vc_num] > 0)
+                sa_valid_cmd    <= 1;
+            else 
+                sa_valid_cmd    <= 0;
+                
             sa_sel_vc_cmd      <= vc_num; 
         end
         
