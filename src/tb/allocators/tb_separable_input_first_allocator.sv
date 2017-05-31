@@ -15,9 +15,9 @@ module tb_separable_input_first_allocator #(
 
     /*INTERNAL VALUES*/ 
 
-    localparam [31:0] AGENTS_PTR_SIZE_IN = $clog2(VC_NUM);//first arbiter
+    localparam [31:0] AGENTS_PTR_SIZE_IN = $clog2(VC_NUM);
 
-    localparam [31:0] AGENTS_PTR_SIZE_OUT = $clog2(PORT_NUM);//second arbiter
+    localparam [31:0] AGENTS_PTR_SIZE_OUT = $clog2(PORT_NUM);
     
     logic [PORT_NUM-1:0][AGENTS_PTR_SIZE_IN-1:0] curr_highest_priority_vc, next_highest_priority_vc;
     
@@ -176,7 +176,7 @@ module tb_separable_input_first_allocator #(
             if(grants[g][h]!==grant_o_gen[g][h])
                 begin
                     $display("[ARBITER FAILED] %d,%d  out: %d generated: %d", g, h, grants[g][h],grant_o_gen[g][h]);
-                    //#5 $finish;
+                    #5 $finish;
                 end
             end
         end
