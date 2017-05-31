@@ -167,7 +167,11 @@ module input_buffer #(
                     end_packet_next = 0;
                 end
 
-                switch_request_o = 1;
+                if(~is_empty_o)
+                begin
+                    switch_request_o = 1;
+                end
+                    
                 read_cmd = read_i;
                 if(write_i & (data_i.flit_label == BODY | data_i.flit_label == TAIL) & ~end_packet)
                 begin
