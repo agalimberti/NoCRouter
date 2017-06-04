@@ -111,14 +111,52 @@ module tb_router;
         vc_num = 0;
         multiple_head[test_port_num] = 0;
         pkt_size[test_port_num] = 4;
-        wait_time[test_port_num] = 3;
+        wait_time[test_port_num] = 0;
         test(test_port_num);
         
-        //repeat(3) @(posedge clk);
-        
+        /*
+        Standard packet, 4 flits, with delay between them
+        */
+        wait_time[test_port_num] = 2;
         test(test_port_num);
         
-        #30 $finish;
+        /*
+        No BODY flits packet
+        */
+        pkt_size[test_port_num] = 2;
+        wait_time[test_port_num] = 0;
+        test(test_port_num);
+        
+        /*
+        Long packet (exceeds buffer length)
+        */
+        pkt_size[test_port_num] = 16;
+        wait_time[test_port_num] = 0;
+        test(test_port_num);
+        
+        /*
+        Packet with multiple HEAD flits
+        */
+        multiple_head[test_port_num] = 3;
+        pkt_size[test_port_num] = 6;
+        wait_time[test_port_num] = 0;
+        test(test_port_num);
+        
+        /*
+        Single flit packet
+        */
+        multiple_head[test_port_num] = 0;
+        pkt_size[test_port_num] = 1;
+        wait_time[test_port_num] = 0;
+        test(test_port_num);
+        
+        /*
+        BODY & TAIL flits without HEAD flit
+        */
+        multiple_head[test_port_num] = 0;
+        noHead();
+        
+        #20 $finish;
     end
 
     // Clock update
@@ -146,7 +184,7 @@ module tb_router;
     task create_flit(input flit_label_t lab);
         flit_written[port_num].flit_label = lab;
         flit_written[port_num].vc_id      = vc_num;
-        if(lab == HEAD)
+        if(lab == HEAD | lab == HEADTAIL)
             begin
                 flit_written[port_num].data.head_data.x_dest  = x_dest;
                 flit_written[port_num].data.head_data.y_dest  = y_dest;
@@ -297,7 +335,6 @@ module tb_router;
     the flit in output is valid. 
     If the check goes wrong an error message is displayed and the testbench ends.
     */
-    
     task checkFlits();
         automatic  int i;
         
@@ -312,7 +349,7 @@ module tb_router;
                     if(~(flit_read[i] === data_out[i]))
                     begin
                         $display("[READ] FAILED %d", $time);
-                        //#10 $finish;
+                        #10 $finish;
                     end
                     else
                         $display("[READ] PASSED %d", $time);
@@ -368,6 +405,36 @@ module tb_router;
             res = 0; //LOCAL
         return res;
     endfunction
+    
+    /*
+    This task tries to insert into the module a BODY and a TAIL
+    flit without the usual leading HEAD flit. 
+    A simple check is done in order to check the proper behavior of the dut.
+    */ 
+    task noHead();
+        @(posedge clk)
+        begin
+            create_flit(BODY);
+            write_flit();
+        end 
+        @(posedge clk);
+        @(negedge clk)
+        begin
+            if(~(error_o[0][0]))
+                #20 $finish;
+        end
+        @(posedge clk)
+        begin
+            create_flit(TAIL);
+            write_flit();
+        end
+        @(posedge clk);
+        @(negedge clk)
+        begin
+            if(~(error_o[0][0]))
+                #20 $finish;
+        end
+    endtask
 
 endmodule
 
