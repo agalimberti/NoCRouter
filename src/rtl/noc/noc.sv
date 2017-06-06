@@ -14,8 +14,10 @@ package noc_params;
 	localparam FLIT_DATA_SIZE = DEST_ADDR_SIZE_X+DEST_ADDR_SIZE_Y+HEAD_PAYLOAD_SIZE;
 
 	typedef enum logic [2:0] {LOCAL, NORTH, SOUTH, WEST, EAST} port_t;
+	localparam PORT_NUM = 5;
+	localparam PORT_SIZE = $clog2(PORT_NUM);
 
-	typedef enum logic [1:0] {HEAD, BODY, TAIL} flit_label_t;
+	typedef enum logic [1:0] {HEAD, BODY, TAIL, HEADTAIL} flit_label_t;
 
 	typedef struct packed
 	{
@@ -24,8 +26,6 @@ package noc_params;
 		logic [HEAD_PAYLOAD_SIZE-1: 0] 	head_pl;
 	} head_data_t;
 
-	typedef logic [FLIT_DATA_SIZE-1 : 0] body_tail_payload_t;
-
 	typedef struct packed
 	{
 		flit_label_t			flit_label;
@@ -33,8 +33,18 @@ package noc_params;
 		union packed
 		{
 			head_data_t 		head_data;
-			body_tail_payload_t bt_pl;
+			logic [FLIT_DATA_SIZE-1 : 0] bt_pl;
 		} data;
 	} flit_t;
+
+    typedef struct packed
+    {
+        flit_label_t flit_label;
+        union packed
+        {
+            head_data_t head_data;
+            logic [FLIT_DATA_SIZE-1 : 0] bt_pl;
+        } data;
+    } flit_novc_t;
 
 endpackage

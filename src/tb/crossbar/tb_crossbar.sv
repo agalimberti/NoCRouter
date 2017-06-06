@@ -2,20 +2,15 @@
 
 import noc_params::*;
 
-module tb_crossbar #(
-    parameter INPUT_NUM = 4,
-    parameter OUTPUT_NUM = 4
-);
-
-    localparam [31:0] SEL_SIZE = $clog2(INPUT_NUM);
+module tb_crossbar;
 
     int j, k;
 
     flit_t flit_x;
-    flit_t data_i [INPUT_NUM-1:0];
-    flit_t data_o [OUTPUT_NUM-1:0];
+    flit_t data_i [PORT_NUM-1:0];
+    flit_t data_o [PORT_NUM-1:0];
 
-    logic [SEL_SIZE-1:0] sel_cmd [OUTPUT_NUM-1:0];
+    logic [PORT_SIZE-1:0] sel_cmd [PORT_NUM-1:0];
 
     initial
     begin
@@ -23,14 +18,20 @@ module tb_crossbar #(
         test();
         #5 $finish;
     end
-
-    crossbar #(
-        .INPUT_NUM(INPUT_NUM),
-        .OUTPUT_NUM(OUTPUT_NUM)
-    )
-    crossbar (
+    
+    input_block2crossbar ib2xbar();
+    switch_allocator2crossbar sa2xbar();
+    
+    mock_in mock_in (
         .data_i(data_i),
-        .sel_i(sel_cmd),
+        .sel_cmd(sel_cmd),
+        .ib_if(ib2xbar),
+        .sa_if(sa2xbar)
+    );
+
+    crossbar crossbar (
+        .ib_if(ib2xbar),
+        .sa_if(sa2xbar),
         .data_o(data_o)
     );
 
@@ -43,12 +44,12 @@ module tb_crossbar #(
         j = 0;
         k = 0;
         fill_flit_x();
-        repeat(OUTPUT_NUM)
+        repeat(PORT_NUM)
         begin
-            repeat(OUTPUT_NUM)
+            repeat(PORT_NUM)
             begin
                 reset_data_i();
-                for(int i = 0; i < OUTPUT_NUM; i = i + 1)
+                for(int i = 0; i < PORT_NUM; i = i + 1)
                     sel_cmd[i] = corresp_output(i);
                 #5
                 if(~check_flits())
@@ -66,7 +67,7 @@ module tb_crossbar #(
     endtask
 
     task reset_data_i();
-        for(int i = 0; i < INPUT_NUM; i = i + 1)
+        for(int i = 0; i < PORT_NUM; i = i + 1)
             data_i[i] <= flit_x;
         fill_data_i();
     endtask
@@ -84,20 +85,32 @@ module tb_crossbar #(
     endtask
 
     function logic check_flits();
-        for(int i = 0; i < INPUT_NUM; i = i + 1)
+        for(int i = 0; i < PORT_NUM; i = i + 1)
         begin
             if(data_i[corresp_output(i)] === data_o[i])
                 check_flits = 1;
             else
             begin
                 check_flits = 0;
-                return;
+                break;
             end
         end
     endfunction
 
-    function int corresp_output(int a);
-        corresp_output = (a + k) % OUTPUT_NUM;
+    function int corresp_output(input int a);
+        corresp_output = (a + k) % PORT_NUM;
     endfunction
+
+endmodule
+
+module mock_in 
+(   
+    input flit_t data_i [PORT_NUM-1:0], 
+    logic [PORT_SIZE-1:0] sel_cmd [PORT_NUM-1:0], 
+    input_block2crossbar.input_block ib_if, 
+    switch_allocator2crossbar.switch_allocator sa_if
+);
+    assign ib_if.flit = data_i;
+    assign sa_if.input_vc_sel = sel_cmd;
 
 endmodule

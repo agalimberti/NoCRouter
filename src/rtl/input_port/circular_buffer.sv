@@ -1,23 +1,23 @@
 import noc_params::*;
 
 module circular_buffer #(
-    parameter BUFFER_SIZE = 8,
-    parameter PIPELINE_DEPTH = 5
+    parameter BUFFER_SIZE = 8
 )(
-    input flit_t data_i,
+    input flit_novc_t data_i,
     input read_i,
     input write_i,
     input rst,
     input clk,
-    output flit_t data_o,
+    output flit_novc_t data_o,
     output logic is_full_o,
     output logic is_empty_o,
     output logic on_off_o
 );
 
+    localparam ON_OFF_LATENCY = 2;
     localparam [31:0] POINTER_SIZE = $clog2(BUFFER_SIZE);
 
-    flit_t memory[BUFFER_SIZE-1:0];
+    flit_novc_t memory[BUFFER_SIZE-1:0];
 
     logic [POINTER_SIZE-1:0] read_ptr;
     logic [POINTER_SIZE-1:0] write_ptr;
@@ -112,9 +112,9 @@ module circular_buffer #(
             num_flits_next = num_flits;
         end
         begin: update_on_off_flag
-            unique if(num_flits > num_flits_next & num_flits_next < PIPELINE_DEPTH)
+            unique if(num_flits > num_flits_next & num_flits_next < ON_OFF_LATENCY)
                 on_off_next = 1;
-            else if(num_flits < num_flits_next & num_flits_next > BUFFER_SIZE - PIPELINE_DEPTH)
+            else if(num_flits < num_flits_next & num_flits_next > BUFFER_SIZE - ON_OFF_LATENCY)
                 on_off_next = 0;
             else
                 on_off_next = on_off_o;
