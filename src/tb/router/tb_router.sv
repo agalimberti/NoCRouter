@@ -4,7 +4,7 @@ import noc_params::*;
 
 module tb_router;
 
-    // Testbench
+    // Testbench signals
     flit_t flit_written[PORT_NUM];
     flit_t flit_queue[PORT_NUM][$];
     flit_t flit_read[PORT_NUM];
@@ -15,7 +15,7 @@ module tb_router;
     
     logic [PORT_NUM-1:0] insert_not_compl, head_done;
     logic [PORT_SIZE-1:0] port_num, test_port_num;
-    logic [VC_SIZE-1:0] vc_num, vc_num_next;
+    logic [VC_SIZE-1:0] vc_num;
 
     logic clk;
     logic rst;
@@ -33,7 +33,7 @@ module tb_router;
     logic [VC_NUM-1:0] on_off_out [PORT_NUM-1:0];
     logic [VC_NUM-1:0] is_allocatable_out [PORT_NUM-1:0];
 
-    //DUT Instantiation
+    //DUT Interfaces Instantiation
     router2router local_up();
     router2router north_up();
     router2router south_up();
@@ -45,10 +45,11 @@ module tb_router;
     router2router west_down();
     router2router east_down();
 
+    //DUT Instantiation
     router #(
         .BUFFER_SIZE(8),
-        .X_CURRENT(MESH_SIZE_X/2),
-        .Y_CURRENT(MESH_SIZE_Y/2)
+        .X_CURRENT(0),
+        .Y_CURRENT(0)
     )
     router (
         .clk(clk),
@@ -96,11 +97,11 @@ module tb_router;
         clear_reset();
         
         /*
-        Always check the settings for x and y positions
-        of the router
+        WARNING: always check the settings for x and y positions
+        of the router, passed as paramter in dut instantiation
         */
-        x_curr = 2;
-        y_curr = 2;
+        x_curr = 0;
+        y_curr = 0;
         
         /*
         Standard 4 flits packet
@@ -108,7 +109,7 @@ module tb_router;
         x_dest = 2;
         y_dest = 2;
         test_port_num = 0;
-        vc_num = 0;
+        vc_num = 1;
         multiple_head[test_port_num] = 0;
         pkt_size[test_port_num] = 4;
         wait_time[test_port_num] = 0;
@@ -156,6 +157,7 @@ module tb_router;
         multiple_head[test_port_num] = 0;
         noHead();
         
+        $display("[All tests PASSED]");
         #20 $finish;
     end
 
@@ -346,7 +348,7 @@ module tb_router;
                 if(valid_flit_out[i])
                 begin
                     readFlit();
-                    if(~(flit_read[i] === data_out[i]))
+                    if(~checkFlitFields(flit_read[i],data_out[i]))
                     begin
                         $display("[READ] FAILED %d", $time);
                         #10 $finish;
@@ -357,6 +359,19 @@ module tb_router;
             end //end for
         end
     endtask 
+    
+    /*
+    The function checks whether the label and the content of the two given flits are equal or not.
+    Notice that the check doesn't consider the vc identifier, which is computed by the internal SA module.
+    The objective in this case is only to verify that the packet exiting from the router maintains the same destionation
+    address and data payload.
+    */
+    function bit checkFlitFields(flit_t flit_read, flit_t flit_out);
+        if(flit_read.flit_label === flit_out.flit_label & 
+            flit_read.data === flit_out.data)
+            return 1;
+        return 0;   
+    endfunction
     
     /*
     This task initializes to proper value all variables that are necessary for each test before it starts.
@@ -420,7 +435,7 @@ module tb_router;
         @(posedge clk);
         @(negedge clk)
         begin
-            if(~(error_o[0][0]))
+            if(~(error_o[0][vc_num]))
                 #20 $finish;
         end
         @(posedge clk)
@@ -431,7 +446,7 @@ module tb_router;
         @(posedge clk);
         @(negedge clk)
         begin
-            if(~(error_o[0][0]))
+            if(~(error_o[0][vc_num]))
                 #20 $finish;
         end
     endtask
