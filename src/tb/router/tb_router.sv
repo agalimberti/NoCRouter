@@ -9,13 +9,12 @@ module tb_router;
     flit_t flit_queue[PORT_NUM][$];
     flit_t flit_read[PORT_NUM];
     
-    int x_curr, y_curr;
-    int num_op, timer, total_time, x_dest, y_dest;
-    int pkt_size[PORT_NUM], flit_num[PORT_NUM], flit_to_read[PORT_NUM], flit_to_read_next[PORT_NUM], multiple_head[PORT_NUM], wait_time[PORT_NUM];
+    int x_curr, y_curr, num_op, timer;
+    int pkt_size[$], flit_num[$], flit_to_read[$], flit_to_read_next[$], multiple_head[$], wait_time[$],x_dest[$], y_dest[$], packet_id[$];
     
     logic [PORT_NUM-1:0] insert_not_compl, head_done;
-    logic [PORT_SIZE-1:0] port_num, test_port_num;
-    logic [VC_SIZE-1:0] vc_num;
+    logic test_port_num [$];
+    logic [VC_SIZE-1:0] vc_num [$];
 
     logic clk;
     logic rst;
@@ -106,56 +105,28 @@ module tb_router;
         /*
         Standard 4 flits packet
         */
-        x_dest = 2;
-        y_dest = 2;
-        test_port_num = 0;
-        vc_num = 1;
-        multiple_head[test_port_num] = 0;
-        pkt_size[test_port_num] = 4;
-        wait_time[test_port_num] = 0;
-        test(test_port_num);
+        x_dest = {0};
+        y_dest = {0};
+        test_port_num = {0};
+        packet_id = {0};
+        vc_num = {0};
+        multiple_head = {};
+        pkt_size = {4};
+        wait_time = {0};
+        test();
         
         /*
-        Standard packet, 4 flits, with delay between them
+        Standard packets, multiple insertion
         */
-        wait_time[test_port_num] = 2;
-        test(test_port_num);
-        
-        /*
-        No BODY flits packet
-        */
-        pkt_size[test_port_num] = 2;
-        wait_time[test_port_num] = 0;
-        test(test_port_num);
-        
-        /*
-        Long packet (exceeds buffer length)
-        */
-        pkt_size[test_port_num] = 16;
-        wait_time[test_port_num] = 0;
-        test(test_port_num);
-        
-        /*
-        Packet with multiple HEAD flits
-        */
-        multiple_head[test_port_num] = 3;
-        pkt_size[test_port_num] = 6;
-        wait_time[test_port_num] = 0;
-        test(test_port_num);
-        
-        /*
-        Single flit packet
-        */
-        multiple_head[test_port_num] = 0;
-        pkt_size[test_port_num] = 1;
-        wait_time[test_port_num] = 0;
-        test(test_port_num);
-        
-        /*
-        BODY & TAIL flits without HEAD flit
-        */
-        multiple_head[test_port_num] = 0;
-        noHead();
+        x_dest = {0,3};
+        y_dest = {0,2};
+        test_port_num = {0,1};
+        packet_id = {0,1};
+        vc_num = {0,0};
+        multiple_head = {0,0};
+        pkt_size = {4,5};
+        wait_time = {0,0};
+        test();
         
         $display("[All tests PASSED]");
         #20 $finish;
@@ -172,8 +143,8 @@ module tb_router;
 
     // Initialize signals
     task initialize();
-        clk             <= 0;
-        rst             = 1;
+        clk     <= 0;
+        rst     = 1;
     endtask
     
     // De-assert the reset signal
@@ -182,82 +153,95 @@ module tb_router;
             rst <= 0;
     endtask
     
-    // Create a flit to be written in both DUT and queue
-    task create_flit(input flit_label_t lab);
-        flit_written[port_num].flit_label = lab;
-        flit_written[port_num].vc_id      = vc_num;
+    /*
+    Create a flit to be written in both DUT and queue, with the given flit label and packet number, in 
+    the port identifier passed as second parameter.
+    The flits to be written are created accordingly to thier label, that is, HEAD and HEADTAIL flits are different
+    with respect to BODY and TAIL ones.
+    */
+    task automatic create_flit(input flit_label_t lab, input logic [PORT_SIZE-1:0] port_id, input int pid);
+        flit_written[port_id].flit_label = lab;
+        flit_written[port_id].vc_id      = vc_num[port_id];
         if(lab == HEAD | lab == HEADTAIL)
             begin
-                flit_written[port_num].data.head_data.x_dest  = x_dest;
-                flit_written[port_num].data.head_data.y_dest  = y_dest;
-                flit_written[port_num].data.head_data.head_pl = {HEAD_PAYLOAD_SIZE{num_op}};
+                flit_written[port_id].data.head_data.x_dest  = x_dest[port_id];
+                flit_written[port_id].data.head_data.y_dest  = y_dest[port_id];
+                flit_written[port_id].data.head_data.head_pl = pid;
             end
         else
-                flit_written[port_num].data.bt_pl = {FLIT_DATA_SIZE{num_op}};
+                flit_written[port_id].data.bt_pl = pid;
     endtask
     
-    // Write flit into the DUT module
-    task write_flit();
+    /*
+    Write flit into the DUT module in the proper port, given by the port identifier as input;
+    while writing a flit into a port, the relative valid flag is set to 1.
+    Finally, the push task is called.
+    */
+    task automatic write_flit(input logic [PORT_SIZE-1:0] port_id);
         begin
-            valid_flit_in[port_num]  <= 1;
-            data_in[port_num]        <= flit_written[port_num];
+            valid_flit_in[port_id]  <= 1;
+            data_in[port_id]        <= flit_written[port_id];
         end
         num_op++;
-        push_flit();
+        push_flit(port_id);
     endtask
     
     /*
     Push the actual flit into the proper queue only under specific conditions.
     In particular, the push operation is done if the HEAD flit hasn't been inserted yet or
-    the flit to insert is not an HEAD one (multiple_head==0).
+    the flit to insert is not an HEAD one (i.e. multiple_head==0).
     */
-    task push_flit();
-        if( ~head_done[port_num] | multiple_head[port_num] == 0)
+    task automatic push_flit(input logic [PORT_SIZE-1:0] port_id);
+        if( ~head_done[port_id] | multiple_head[port_id] == 0)
         begin
-            $display("push %d , dest %d", $time, computeOutport(x_dest, y_dest));
-            flit_queue[computeOutport(x_dest, y_dest)].push_back(flit_written[port_num]);
-            flit_to_read_next[port_num]++;
+            $display("push %d, dest %d", $time, computeOutport(x_dest[port_id], y_dest[port_id]));
+            flit_queue[computeOutport(x_dest[port_id], y_dest[port_id])].push_back(flit_written[port_id]);
+            flit_to_read_next[port_id]++;
         end
     endtask
     
     /*
-    This is the main task of the testbench: after an initial phase of initialization, it repeatedly calls the 4 subtasks
+    This is the main task of the testbench: after an initial phase of initialization, it repeatedly calls the 3 subtasks
     until there is no flits to read or the insertion of all the flits of a packet has not been completed (these two conditions
     are checked by means of a separate task).
-    
-    Parameters
-        curr_port: is the port identifier in which the packet will be inserted.
     */
-    task test(input logic [VC_SIZE-1:0] curr_port);
-        
-        port_num = curr_port;
+    task test();
         initTest();
 
-        $display("Packet size: %d", pkt_size[port_num]);
+        //$display("Packet size: %d", pkt_size[port_num]);
         while(checkEndConditions()) @(posedge clk)
         begin
-            $display("Time %d, port_num: %d total time:%d, to read %d, timer %d",$time, port_num, total_time, flit_to_read[port_num], timer);
+            //$display("Time %d, port_num: %d total time:%d, to read %d, timer %d",$time, port_num, total_time, flit_to_read[port_num], timer);
             
             insertFlit();
-            total_time++;
             checkFlits();
-            flit_to_read[port_num] = flit_to_read_next[port_num];
+            updateFlitToRead();
             
-            $display("Time %d, port_num: %d total time:%d, to read %d, timer %d",$time, port_num, total_time, flit_to_read_next[port_num], timer);
+            //$display("Time %d, port_num: %d total time:%d, to read %d, timer %d",$time, port_num, total_time, flit_to_read_next[port_num], timer);
         end
-
     endtask
+    
+    /*
+    This function updates the flit_to_read variable of all the ports in the test case
+    */
+    function updateFlitToRead();
+        automatic int i;
+        
+        for(i=0; i<test_port_num.size(); i++)
+            flit_to_read[test_port_num[i]]= flit_to_read_next[test_port_num[i]];   
+    endfunction
     
     /*
     This task checks whether there are flits still to read from the queues and that the insertion of all packets into the ports has not yet completed.
-    The checks is done for all ports of the router. 
+    The checks is done for all ports indicated in the test_port_num list. 
     */
     function bit unsigned checkEndConditions();
-        automatic int i;
+        automatic int i, pid;
     
-        for(i = 0; i < PORT_NUM; i++)
+        for(i = 0; i < test_port_num.size(); i++)
         begin
-            if(flit_queue[i].size()>0 | insert_not_compl[i])
+            pid = computeOutport(x_dest[i], y_dest[i]);
+            if(flit_queue[pid].size()>0 | insert_not_compl[test_port_num[i]])
                 return 1;
         end
         return 0;
@@ -267,68 +251,79 @@ module tb_router;
     This task is responsible of calling the proper writing task according to some conditions.
     */
     task insertFlit();
-    if(pkt_size[port_num] == 1)
-    begin
-        flit_num[port_num]++;
-        if(flit_num[port_num] == 1)
+        automatic int i;
+        automatic logic [PORT_SIZE-1:0] port_id;
+
+
+        for(i=0; i<test_port_num.size(); i++)
         begin
-            create_flit(HEADTAIL);
-            write_flit();
-            insert_not_compl[port_num] <= 0;
-        end
-        else    
-            valid_flit_in[port_num] <= 0;
-    end
-    else
-    begin
-        if(timer == 0 & insert_not_compl[port_num])
-        begin
-            flit_num[port_num]++;
-                                
-            if(flit_num[port_num] == 1 | multiple_head[port_num] > 0)
-                begin
-                    create_flit(HEAD);
-                    write_flit();
-                    multiple_head[port_num]--;
-                    head_done[port_num] = 1;
-                end
-            else
+            port_id = test_port_num[i];
+            //$display("* i %d, pid %d", i, port_id);
+
+            if(pkt_size[port_id] == 1)
             begin
-                multiple_head[port_num] = 0;
-                if (flit_num[port_num] == pkt_size[port_num])
+                flit_num[port_id]++;
+                if(flit_num[port_id] == 1)
                 begin
-                    create_flit(TAIL);
-                    write_flit();
-                    insert_not_compl[port_num] <= 0; // Deassert completion flag
+                    create_flit(HEADTAIL, port_id, packet_id[i]);
+                    write_flit(port_id);
+                    insert_not_compl[port_id] <= 0;
                 end
-            
+                else    
+                    valid_flit_in[port_id] <= 0;
+            end
+            else //end single flit part
+            begin
+                if(timer == 0 & insert_not_compl[port_id])
+                begin
+                    flit_num[port_id]++;
+                                        
+                    if(flit_num[port_id] == 1 | multiple_head[port_id] > 0)
+                        begin
+                            create_flit(HEAD, port_id, packet_id[i]);
+                            write_flit(port_id);
+                            multiple_head[port_id]--;
+                            head_done[port_id] = 1;
+                        end
+                    else
+                    begin
+                        multiple_head[port_id] = 0;
+                        if (flit_num[port_id] == pkt_size[port_id])
+                        begin
+                            create_flit(TAIL, port_id, packet_id[i]);
+                            write_flit(port_id);
+                            insert_not_compl[port_id] <= 0; // Deassert completion flag
+                        end
+                        else
+                        begin
+                            create_flit(BODY, port_id, packet_id[i]);
+                            write_flit(port_id);
+                        end
+                    end
+                    timer = wait_time[port_id]; // reset timer
+                end
                 else
                 begin
-                    create_flit(BODY);
-                    write_flit();
+                    valid_flit_in[port_id] <= 0;
+                    if(timer > 0)
+                        timer--;
                 end
-            end
-            timer = wait_time[port_num]; // reset timer
-        end
-        else
-        begin
-            valid_flit_in[port_num] <= 0;
-            if(timer > 0)
-                timer--;
-        end
-    end
+            end // end multiple flit part
+        end //end for
     endtask
     
     /*
     This task just updates the counters that control the flits insertion and 
-    then pops out of the proper queue the next flit to be read
+    then pops out of the proper queue the next flit to be read. The queue from which the flit
+    must be read is computed through the computeOutport function, starting from the x and y destionation address.
     */
-    task readFlit();
-        $display("Read simtime %d, ttime %d, portnum %d, toread %d",$time, total_time, port_num,flit_to_read[port_num]);
+    task automatic readFlit(input int port_id, input logic [PORT_SIZE-1:0] dest_port_id);
+        automatic int pid;
+        $display("Read simtime %d, portnum %d, toread %d destport %d",$time, port_id,flit_to_read[port_id], dest_port_id);
         begin
             num_op++;
-            flit_to_read_next[port_num]--;
-            flit_read[computeOutport(x_dest, y_dest)] = flit_queue[computeOutport(x_dest, y_dest)].pop_front();
+            flit_to_read_next[port_id]--;
+            flit_read[dest_port_id] = flit_queue[dest_port_id].pop_front();
         end
     endtask
     
@@ -339,16 +334,21 @@ module tb_router;
     */
     task checkFlits();
         automatic  int i;
+        automatic logic [PORT_SIZE-1:0] port_id;
         
         @(negedge clk)
-        $display("Check %d, port_num %d, toread %d, valid_flit_out %b",$time, port_num, flit_to_read[port_num],valid_flit_out[computeOutport(x_dest, y_dest)]); 
+//        $display("Check %d, port_num %d, toread %d, valid_flit_out %b",$time, port_num, flit_to_read[port_num],valid_flit_out[computeOutport(x_dest, y_dest)]); 
         begin 
-            for(i=0; i<PORT_NUM; i++)
+            for(i=0; i<test_port_num.size(); i++)
             begin
-                if(valid_flit_out[i])
+                //port_id = test_port_num[i]; //ERROR must be dest port!!
+                port_id = computeOutport(x_dest[i], y_dest[i]);
+                $display("* i %d, pid dest %d", i, port_id);
+                
+                if(valid_flit_out[port_id])
                 begin
-                    readFlit();
-                    if(~checkFlitFields(flit_read[i],data_out[i]))
+                    readFlit(test_port_num[i], port_id);
+                    if(~checkFlitFields(flit_read[port_id],data_out[port_id]))
                     begin
                         $display("[READ] FAILED %d", $time);
                         #10 $finish;
@@ -370,7 +370,7 @@ module tb_router;
         if(flit_read.flit_label === flit_out.flit_label & 
             flit_read.data === flit_out.data)
             return 1;
-        return 0;   
+        return 0;
     endfunction
     
     /*
@@ -378,9 +378,9 @@ module tb_router;
     */
     task initTest();
         automatic int i,j;
-        total_time  = 0;
         timer       = 0;
         
+        // Values reset
         for(i=0;i<PORT_NUM;i++)
         begin
             valid_flit_in[i]    = 0;
@@ -389,14 +389,17 @@ module tb_router;
             flit_to_read[i]     = 0;
             flit_to_read_next[i]= 0;
             insert_not_compl[i] = 0;
+            
             for(j=0; j<VC_NUM; j++)
             begin
                 is_allocatable_in[i][j] = 1; // means that downstream router is always available
                 on_off_in[i][j] = 1;
             end
         end
-            
-        insert_not_compl[port_num] = 1;
+        
+        // Assert flag for each port in the test port list
+        for(i=0; i<test_port_num.size(); i++)    
+            insert_not_compl[test_port_num[i]] = 1;
     endtask
     
     /*
@@ -429,24 +432,24 @@ module tb_router;
     task noHead();
         @(posedge clk)
         begin
-            create_flit(BODY);
-            write_flit();
+            create_flit(BODY, 0, 0);
+            write_flit(0);
         end 
         @(posedge clk);
         @(negedge clk)
         begin
-            if(~(error_o[0][vc_num]))
+            if(~(error_o[0][0]))
                 #20 $finish;
         end
         @(posedge clk)
         begin
-            create_flit(TAIL);
-            write_flit();
+            create_flit(TAIL, 0, 0);
+            write_flit(0);
         end
         @(posedge clk);
         @(negedge clk)
         begin
-            if(~(error_o[0][vc_num]))
+            if(~(error_o[0][0]))
                 #20 $finish;
         end
     endtask
