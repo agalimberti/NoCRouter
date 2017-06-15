@@ -1,6 +1,6 @@
 import noc_params::*;
 
-module 2d_mesh #(
+module mesh #(
     parameter BUFFER_SIZE = 8,
     parameter MESH_SIZE_X = 2,
     parameter MESH_SIZE_Y = 3
