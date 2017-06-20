@@ -155,6 +155,19 @@ module tb_router;
         test(); 
          
         /* 
+        Long packet (exceeds buffer length) 
+        */ 
+        x_dest = {1,1};
+        y_dest = {1,1};
+        test_port_num = {0,1};
+        packet_id = {0,1};
+        vc_num = {0,0};
+        multiple_head = {0,0};
+        pkt_size ={25,15};
+        wait_time = {0,0};
+        test();
+         
+        /* 
         Packet with multiple HEAD flits 
         */ 
         x_dest = {1,1};
@@ -278,7 +291,7 @@ module tb_router;
     are checked by means of a function).
     */
     task test();
-        $display("\n*** NEW TEST ***");
+        $display("\n*** NEW TEST * %d ***", $time);
         initTest();
         while(checkEndConditions()) @(posedge clk)
         begin            
@@ -347,7 +360,7 @@ module tb_router;
             end
             else //end single flit part
             begin
-                if(timer == 0 & insert_not_compl[port_id])
+                if(timer == 0 & insert_not_compl[port_id] & on_off_out[port_id][vc_num[i]])
                 begin
                     flit_num[port_id]++;
                                         
