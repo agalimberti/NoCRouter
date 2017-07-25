@@ -26,8 +26,13 @@ module input_block #(
     assign va_if.out_port = out_port;
     assign sa_if.out_port = out_port;
 
-      
-
+    /*
+    The Input Block module contains all the PORT_NUM
+    Input Ports composing the Router, making it easier
+    to connect all of them through one single interface
+    per each other module, i.e., the Crossbar, the
+    Virtual Channel Allocator and the Switch Allocator.
+    */
     genvar ip;
     generate
         for(ip=0; ip<PORT_NUM; ip++)

@@ -11,13 +11,32 @@ module round_robin_arbiter #(
 
     logic [AGENTS_PTR_SIZE-1:0] highest_priority, highest_priority_next;
 
+    /*
+    Sequential logic:
+    - reset on the rising edge of the rst input;
+    - update the agent with the highest priority with
+      respect to the Round-Robin arbitration policy.
+    */
     always_ff@(posedge clk, posedge rst)
     begin
         if(rst)
+        begin
             highest_priority <= 0;
+        end
         else
+        begin
             highest_priority <= highest_priority_next;
+        end
     end
+
+    /*
+    Combinational logic:
+    - among all the agents requesting for the shared resource,
+      grant the first one in ascending order starting
+      from the current highest priority agent;
+    - set as the next highest priority agent
+      the one following the granted agent.
+    */
 
     always_comb
     begin
