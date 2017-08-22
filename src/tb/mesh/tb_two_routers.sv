@@ -55,24 +55,25 @@ module tb_two_routers;
    router2router d_west_up();
    router2router d_east_up();
    
-   router2router mock_if();
-   router2router mock_if2();
-   router2router mock_if3();
-   router2router mock_if4();
-   router2router mock_if5();
-   router2router mock_if6();
-   router2router mock_if7();
-   router2router mock_if8();
-   router2router mock_if9();
-   router2router mock_if10();
-   router2router mock_if11();
-   router2router mock_if12();
-   router2router mock_if13();
-   router2router mock_if14();
-   router2router mock_if15();
-   router2router mock_if16();
-   router2router mock_if17();
-   router2router mock_if18();
+   //(useless but necessary interfaces)
+   router2router u_local_up();
+   router2router u_north_up();
+   router2router u_south_up();
+   router2router u_west_up();
+   router2router d_local_down();
+   router2router d_north_down();
+   router2router d_south_down();
+   router2router d_east_down();
+   router2router um_local_down();
+   router2router um_north_down();
+   router2router um_south_down();
+   router2router um_west_down();
+   router2router um_east_down();
+   router2router dm_local_up();
+   router2router dm_north_up();
+   router2router dm_south_up();
+   router2router dm_west_up();
+   router2router dm_east_up();
 
 
    //DUT Instantiation
@@ -94,10 +95,10 @@ module tb_two_routers;
        .router_if_west_down(u_west_down),
        .router_if_east_down(u_east_down),
        //mock if
-       .router_if_local_up(mock_if),
-       .router_if_north_up(mock_if2),
-       .router_if_south_up(mock_if3),
-       .router_if_west_up(mock_if4)
+       .router_if_local_up(u_local_up),
+       .router_if_north_up(u_north_up),
+       .router_if_south_up(u_south_up),
+       .router_if_west_up(u_west_up)
     );
 
    router #(
@@ -118,10 +119,10 @@ module tb_two_routers;
        //router2router.downstream
        .router_if_west_down(routers_link),
        //mock if
-       .router_if_local_down(mock_if5),
-       .router_if_north_down(mock_if6),
-       .router_if_south_down(mock_if7),
-       .router_if_east_down(mock_if8)
+       .router_if_local_down(d_local_down),
+       .router_if_north_down(d_north_down),
+       .router_if_south_down(d_south_down),
+       .router_if_east_down(d_east_down)
    );
    
    router_mock upstream_mock (
@@ -130,11 +131,11 @@ module tb_two_routers;
        .router_if_south_up(u_south_down),
        .router_if_west_up(u_west_down),
        .router_if_east_up(u_east_down),
-       .router_if_local_down(mock_if9),
-       .router_if_north_down(mock_if10),
-       .router_if_south_down(mock_if11),
-       .router_if_west_down(mock_if12),
-       .router_if_east_down(mock_if13),
+       .router_if_local_down(um_local_down),
+       .router_if_north_down(um_north_down),
+       .router_if_south_down(um_south_down),
+       .router_if_west_down(um_west_down),
+       .router_if_east_down(um_east_down),
        .data_out(u_data_out),
        .is_valid_out(u_valid_flit_out),
        .is_on_off_in(u_on_off_in),
@@ -151,11 +152,11 @@ module tb_two_routers;
        .router_if_south_down(d_south_up),
        .router_if_west_down(d_west_up),
        .router_if_east_down(d_east_up),
-       .router_if_local_up(mock_if14),
-       .router_if_north_up(mock_if15),
-       .router_if_south_up(mock_if16),
-       .router_if_west_up(mock_if17),
-       .router_if_east_up(mock_if18),
+       .router_if_local_up(dm_local_up),
+       .router_if_north_up(dm_north_up),
+       .router_if_south_up(dm_south_up),
+       .router_if_west_up(dm_west_up),
+       .router_if_east_up(dm_east_up),
        .data_out(d_data_out),
        .is_valid_out(d_valid_flit_out),
        .is_on_off_in(d_on_off_in),
@@ -179,7 +180,7 @@ module tb_two_routers;
        x_curr = upstream_router.X_CURRENT;
        y_curr = upstream_router.Y_CURRENT;
 
-       testt();
+       main_test();
 
        $display("[All tests PASSED]");
        #20 $finish;
@@ -490,9 +491,12 @@ module tb_two_routers;
    endtask
 
     /*
-    * TODO
+    * This task is used to set all the requested parameters and to effectively 
+    * call the task that does the test.
+    * The test is repeated for all input and output ports combinations  
+    * except the pair of ports that are used to connect together the two routers. 
     */
-    task testt();
+    task main_test();
         automatic int i,j;
         
         // Setting values of test parameters
@@ -501,20 +505,24 @@ module tb_two_routers;
         multiple_head = {0};
         pkt_size = {4};
         wait_time = {0};
-        x_dest_addr = {2,3,2,2};
-        y_dest_addr = {0,1,2,1}; // North, East, South and Local
         vc_num = {0};
+
+        // Precomputed destination addresses to properly check all the
+        // output ports of the downstream router.
+        // In order: North, East, South and Local
+        x_dest_addr = {2,3,2,2};
+        y_dest_addr = {0,1,2,1};
         
         for(i=0; i<(PORT_NUM-1); i++)
         begin
-            //setting current test port number and VC identifier
+            //setting current test port number
             test_port_num = {i};
             
             for(j=0; j<(PORT_NUM-1); j++)
             begin
                 //update destination address
-                x_dest[0] = x_dest_addr[j % 4];
-                y_dest[0] = y_dest_addr[j % 4];
+                x_dest[0] = x_dest_addr[j % (PORT_NUM-1)];
+                y_dest[0] = y_dest_addr[j % (PORT_NUM-1)];
             
                 //recall test task
                 $display("Test %d",i);
