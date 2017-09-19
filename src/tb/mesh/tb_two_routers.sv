@@ -521,8 +521,8 @@ module tb_two_routers;
             for(j=0; j<(PORT_NUM-1); j++)
             begin
                 //update destination address
-                x_dest[0] = x_dest_addr[j % (PORT_NUM-1)];
-                y_dest[0] = y_dest_addr[j % (PORT_NUM-1)];
+                x_dest[0] = x_dest_addr[j];
+                y_dest[0] = y_dest_addr[j];
             
                 //recall test task
                 $display("Test %d",i);
