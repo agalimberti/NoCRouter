@@ -141,6 +141,19 @@ module tb_router;
         wait_time = {0,0};
         test();
         
+        /*
+        Standard packets, multiple insertion, same outport with delay between flits arrival
+        */
+        x_dest = {1,1};
+        y_dest = {1,1};
+        test_port_num = {1,3};
+        packet_id = {0,1};
+        vc_num = {0,0};
+        multiple_head = {0,0};
+        pkt_size = {6,5};
+        wait_time = {3,4};
+        test();
+        
         /* 
         No BODY flits packets 
         */ 
