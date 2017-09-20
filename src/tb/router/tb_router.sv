@@ -103,7 +103,7 @@ module tb_router;
         y_curr = 0;
         
         /*
-        Standard 4 flits single packet
+        Test #1: Standard 4 flits single packet
         */
         x_dest = {3};
         y_dest = {3};
@@ -116,7 +116,7 @@ module tb_router;
         test();
         
         /*
-        Standard packets, multiple insertion, different outport
+        Test #2: Standard packets, multiple insertion, different outport
         */
         x_dest = {1,0};
         y_dest = {0,1};
@@ -129,7 +129,7 @@ module tb_router;
         test();        
         
         /*
-        Standard packets, multiple insertion, same outport
+        Test #3: Standard packets, multiple insertion, same outport
         */
         x_dest = {1,1};
         y_dest = {1,1};
@@ -142,7 +142,7 @@ module tb_router;
         test();
         
         /*
-        Standard packets, multiple insertion, same outport with delay between flits arrival
+        Test #4: Standard packets, multiple insertion, same outport with delay between flits arrival
         */
         x_dest = {1,1};
         y_dest = {1,1};
@@ -155,7 +155,7 @@ module tb_router;
         test();
         
         /* 
-        No BODY flits packets 
+        Test #5: No BODY flits packets 
         */ 
         x_dest = {1,1};
         y_dest = {1,1};
@@ -168,7 +168,7 @@ module tb_router;
         test(); 
          
         /* 
-        Long packet (exceeds buffer length) 
+        Test #6: Long packet (exceeds buffer length) 
         */ 
         x_dest = {1,1};
         y_dest = {1,1};
@@ -181,7 +181,7 @@ module tb_router;
         test();
          
         /* 
-        Packet with multiple HEAD flits 
+        Test #7: Packet with multiple HEAD flits 
         */ 
         x_dest = {1,1};
         y_dest = {1,1};
@@ -194,7 +194,7 @@ module tb_router;
         test();
          
         /* 
-        Single flit packet 
+        Test #8: Single flit packet 
         */ 
         x_dest = {1,1};
         y_dest = {1,1};
@@ -207,7 +207,7 @@ module tb_router;
         test();
         
         /*
-        BODY & TAIL flits without HEAD flit
+        Test #9: BODY & TAIL flits without HEAD flit
         */
         x_dest = {1,1};
         y_dest = {1,1};
