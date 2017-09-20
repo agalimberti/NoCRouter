@@ -513,6 +513,8 @@ module tb_two_routers;
         x_dest_addr = {2,3,2,2};
         y_dest_addr = {0,1,2,1};
         
+        // Test #1-16: for every pair of input port of the first router
+        // and output port of the second, a simple insertion test is executed 
         for(i=0; i<(PORT_NUM-1); i++)
         begin
             //setting current test port number
