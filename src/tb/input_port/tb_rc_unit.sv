@@ -9,7 +9,6 @@ module tb_rc_unit #(
     parameter X_CURRENT = MESH_SIZE_X / 2,
     parameter Y_CURRENT = MESH_SIZE_Y / 2
 );
-    int i, j;
     localparam [31:0] DEST_ADDR_SIZE_X = $clog2(MESH_SIZE_X);
     localparam [31:0] DEST_ADDR_SIZE_Y = $clog2(MESH_SIZE_Y);
  
@@ -42,42 +41,39 @@ module tb_rc_unit #(
     endtask
 
     task compute_all_destinations_mesh();
-        i = 0;
-        j = 0;
+        x_dest_i <= 0;
+        y_dest_i <= 0;
         repeat(MESH_SIZE_Y)
         begin
             repeat(MESH_SIZE_X)
             begin
-                #5
-                x_dest_i = i;
-                y_dest_i = j;
                 #5 
                 if(~check_dest())
                 begin
                     $display("[RCUNIT] Failed");
                     return;
                 end
-                i = i + 1;
+                x_dest_i <= x_dest_i + 1;
             end
-            i = 0;
-            j = j + 1;
+            x_dest_i <= 0;
+            y_dest_i <= y_dest_i + 1;
         end
         $display("[RCUNIT] Passed");
     endtask
 
     function logic check_dest();
         if(x_dest_i < X_CURRENT & out_port_o == WEST)
-            check_dest = 1;
+            check_dest <= 1;
         else if(x_dest_i > X_CURRENT & out_port_o == EAST)
-            check_dest = 1;
+            check_dest <= 1;
         else if(x_dest_i == X_CURRENT & y_dest_i < Y_CURRENT & out_port_o == NORTH)
-            check_dest = 1;
+            check_dest <= 1;
         else if(x_dest_i == X_CURRENT & y_dest_i > Y_CURRENT & out_port_o == SOUTH)
-            check_dest = 1;
+            check_dest <= 1;
         else if(x_dest_i == X_CURRENT & y_dest_i == Y_CURRENT & out_port_o == LOCAL)
-            check_dest = 1;
+            check_dest <= 1;
         else
-            check_dest = 0;
+            check_dest <= 0;
     endfunction
 
 endmodule
