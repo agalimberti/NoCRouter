@@ -29,6 +29,6 @@ In particular, each testbench contains the module to be tested (DUT) and the nec
 Testing of single modules and of multiple modules interacting with each other has been performed with a bottom-up approach, alongside the development phase, both by manually analyzing the VCD waveforms produced by simulations in the Vivado environment and by means of testbenches self-evaluating the results of the same simulations.  
 All tests have been executed in the *Vivado HL WebPack 2016.4* IDE on Linux machines.
 
-*For further information, refer to the [project documentation](https://github.com/agalimberti/NoCRouter/raw/dev/doc/Project%20Documentation.pdf)*.
+*For further information, refer to the [project documentation](https://github.com/agalimberti/NoCRouter/raw/master/doc/Project%20Documentation.pdf)*.
 
 *The project was carried out by Andrea Galimberti ([@agalimberti](https://github.com/agalimberti)), Filippo Testa ([@f-testa](https://github.com/f-testa)) and Alberto Zeni ([@albertozeni](https://github.com/albertozeni)) in the Embedded Systems course at Politecnico di Milano, A.Y. 2016/2017.*
