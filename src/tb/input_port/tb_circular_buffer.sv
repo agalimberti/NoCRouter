@@ -13,12 +13,12 @@ module tb_circular_buffer #(
     logic read_i;
     logic write_i;
 
-    flit_t flit_queue[$];
-    flit_t flit_written;
-    flit_t flit_read;
-    flit_t flit_x;
-    flit_t data_i;
-    flit_t data_o;
+    flit_novc_t flit_queue[$];
+    flit_novc_t flit_written;
+    flit_novc_t flit_read;
+    flit_novc_t flit_x;
+    flit_novc_t data_i;
+    flit_novc_t data_o;
 
     wire is_full_o;
     wire is_empty_o;
@@ -162,7 +162,6 @@ module tb_circular_buffer #(
 
     task create_flit();
         flit_written.flit_label <= HEAD;
-        flit_written.vc_id <= {VC_SIZE{num_operation}};
         flit_written.data.head_data.x_dest <= {DEST_ADDR_SIZE_X{num_operation}};
         flit_written.data.head_data.y_dest <= {DEST_ADDR_SIZE_Y{num_operation}}; 
         flit_written.data.head_data.head_pl <= {HEAD_PAYLOAD_SIZE{num_operation}};
