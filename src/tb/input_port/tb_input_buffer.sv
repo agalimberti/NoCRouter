@@ -24,7 +24,7 @@ module tb_input_buffer #(
     flit_t flit_queue[$];
     flit_t flit_written;
     flit_t flit_read;
-    flit_t data_i;
+    flit_novc_t data_i;
     flit_t data_o;
 
     wire is_full_o;
@@ -149,7 +149,8 @@ module tb_input_buffer #(
         begin
             read_i  <= 0;
             write_i <= 1;
-            data_i  <= flit_written;
+            data_i.flit_label <= flit_written.flit_label;
+            data_i.data <= flit_written.data;
             push_flit(next_vc);
             i = i + 1;
             num_operation = num_operation + 1;
